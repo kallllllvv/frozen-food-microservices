@@ -1,0 +1,16 @@
+{
+  "name": "frozen-food-microservices",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently -c \"cyan,magenta,yellow,green\" -n \"PRODUCT,ORDER,USER,FRONTEND\" \"npm run dev:product\" \"npm run dev:order\" \"npm run dev:user\" \"npm run dev:frontend\"",
+    "dev:product": "cd product-service && node index.js",
+    "dev:order": "cd order-service && node index.js",
+    "dev:user": "cd user-service && node index.js",
+    "dev:frontend": "cd frontend-web && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
