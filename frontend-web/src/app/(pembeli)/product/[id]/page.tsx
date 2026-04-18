@@ -22,7 +22,7 @@ export default function DetailProduk() {
     .slice(0, 4);
 
   if (!isMounted) return null;
-  if (!product) return <div className="p-20 text-center font-black text-black uppercase tracking-widest">Produk Gak Ketemu, Wa!</div>;
+  if (!product) return <div className="p-20 text-center font-black text-black uppercase tracking-widest">Produk Tidak Ditemukan</div>;
 
   const getStockStatus = (stock: number) => {
     if (stock <= 5) return { label: "Hampir Habis", color: "text-red-600" };
