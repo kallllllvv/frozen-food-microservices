@@ -11,11 +11,34 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Tambahkan integrasi API Login di sini
-    console.log("Data Login:", { email, password });
-    
-    // Simulasi redirect setelah login
-    router.push("/");
+
+    // AMBIL DATA DARI REGISTER TADI
+    const registeredEmail = localStorage.getItem("user_email");
+    const registeredName = localStorage.getItem("user_fullname");
+    const registeredPass = localStorage.getItem("user_password");
+
+    // CEK APAKAH LOGINNYA COCOK
+    if (email === registeredEmail && password === registeredPass) {
+      
+      // PERBAIKAN DI SINI: Simpan sebagai JSON string dengan key "user"
+      const userData = {
+        name: registeredName || "User",
+        email: registeredEmail
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      localStorage.setItem("token", "dummy-token-login");
+
+      alert(`Selamat datang kembali, ${registeredName}!`);
+      
+      // Kasih sedikit jeda sebelum redirect biar localStorage beneran kesimpen
+      setTimeout(() => {
+        router.push("/");
+      }, 100);
+
+    } else {
+      alert("Email atau Password salah! Pastikan sama dengan pas daftar tadi.");
+    }
   };
 
   return (

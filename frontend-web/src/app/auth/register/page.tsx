@@ -23,14 +23,20 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
       alert("Password tidak cocok!");
       return;
     }
-    // TODO: Tambahkan integrasi API Register di sini
-    console.log("Data Register:", formData);
-    
-    // Redirect ke login setelah sukses mendaftar
+
+    // SIMPAN DATA KE LOCALSTORAGE BIAR BISA DIBACA PAS LOGIN
+    localStorage.setItem("user_fullname", formData.name);
+    localStorage.setItem("user_email", formData.email);
+    localStorage.setItem("user_password", formData.password);
+
+    alert("Pendaftaran berhasil! Akun kamu sudah tersimpan di browser.");
+
+    // Redirect ke login
     router.push("/auth/login");
   };
 
