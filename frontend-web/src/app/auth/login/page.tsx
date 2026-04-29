@@ -33,7 +33,11 @@ export default function LoginPage() {
         
         // Kasih sedikit jeda sebelum redirect biar localStorage beneran kesimpen
         setTimeout(() => {
-          router.push("/");
+          if (data.user?.role === "admin") {
+            router.push("/dashboard");
+          } else {
+            router.push("/");
+          }
         }, 100);
       } else {
         // Tampilkan pesan error dari backend (misal: "Email atau password salah")

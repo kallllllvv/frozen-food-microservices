@@ -1,20 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
+  const [banner, setBanner] = useState<any>(null);
 
   // State untuk Data Produk dari API Backend
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // State untuk Filter & Pencarian
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [priceFilter, setPriceFilter] = useState("all");
+  const [sortOption, setSortOption] = useState("default");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -35,22 +38,47 @@ export default function HomePage() {
     // 2. Fetch data produk dari Backend
     const fetchProducts = async () => {
       try {
+        setError(null);
         const response = await fetch("http://localhost:5000/api/products");
         if (response.ok) {
           const data = await response.json();
-          // Sesuaikan dengan respon backend kamu, misal datanya ada di data.data atau langsung array
-          setProducts(data.data || data); 
+          // Set fallback values for reviews/sold sekali saat fetch agar tidak berubah tiap render
+          const rows = (data.data || data).map((p: any) => ({
+            ...p,
+            reviews: p.reviews ?? Math.floor(Math.random() * 50) + 10,
+            sold: p.sold ?? Math.floor(Math.random() * 100) + 20,
+          }));
+          setProducts(rows);
+          setError(null);
         } else {
-          console.error("Gagal mengambil data produk");
+          const errorMsg = `Gagal mengambil data produk (${response.status})`;
+          setError(errorMsg);
+          setProducts([]);
         }
       } catch (error) {
-        console.error("Error fetching products:", error);
+        const errorMsg = error instanceof Error ? error.message : "Gagal terhubung ke server. Pastikan backend sedang berjalan di http://localhost:5000";
+        setError(errorMsg);
+        setProducts([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProducts();
+
+    const fetchBanner = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/banners/active");
+        if (response.ok) {
+          const data = await response.json();
+          setBanner(data.data?.[0] || null);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil banner:", error);
+      }
+    };
+
+    fetchBanner();
   }, []);
 
   // Fungsi utilitas untuk format harga angka (misal: 45000) menjadi "Rp 45.000"
@@ -84,10 +112,62 @@ export default function HomePage() {
     return matchCategory && matchPrice && matchSearch;
   });
 
+  // Apply sorting / special filters
+  const sortedProducts = useMemo(() => {
+    const arr = [...filteredProducts];
+    switch (sortOption) {
+      case 'price-asc':
+        return arr.sort((a, b) => Number(a.price) - Number(b.price));
+      case 'price-desc':
+        return arr.sort((a, b) => Number(b.price) - Number(a.price));
+      case 'reviews-desc':
+        return arr.sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+      case 'reviews-asc':
+        return arr.sort((a, b) => (a.reviews || 0) - (b.reviews || 0));
+      case 'trending':
+        return arr.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+      case 'promo':
+        return arr.filter(p => (p.tag && String(p.tag).toLowerCase().includes('promo')) || Number(p.price) < 30000).sort((a,b) => Number(a.price) - Number(b.price));
+      default:
+        return arr;
+    }
+  }, [filteredProducts, sortOption]);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     window.location.reload();
+  };
+
+  const handleRetry = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("http://localhost:5000/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        const rows = (data.data || data).map((p: any) => ({
+          ...p,
+          reviews: p.reviews ?? Math.floor(Math.random() * 50) + 10,
+          sold: p.sold ?? Math.floor(Math.random() * 100) + 20,
+        }));
+        setProducts(rows);
+        setError(null);
+      } else {
+        setError(`Gagal mengambil data produk (${response.status})`);
+        setProducts([]);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Gagal terhubung ke server. Pastikan backend sedang berjalan di http://localhost:5000";
+      setError(errorMsg);
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const closeError = () => {
+    setError(null);
   };
 
   if (!mounted) return <div className="min-h-screen bg-white"></div>;
@@ -142,12 +222,48 @@ export default function HomePage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+        {/* ERROR NOTIFICATION */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md flex items-center justify-between animate-slide-down">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-bold text-red-800 text-sm">Terjadi Kesalahan</p>
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 ml-4">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Coba Lagi
+              </button>
+              <button
+                onClick={closeError}
+                className="px-3 py-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
         {/* HERO BANNER */}
         <section className="relative h-[250px] sm:h-[300px] rounded-[2rem] overflow-hidden mb-12 bg-gray-900 shadow-2xl">
-          <img src="https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop" className="object-cover w-full h-full brightness-50 absolute" alt="Banner" />
+          <img
+            src={banner?.image_url || "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop"}
+            className="object-cover w-full h-full brightness-50 absolute"
+            alt={banner?.title || "Banner"}
+          />
           <div className="relative z-10 h-full flex flex-col justify-center px-10 text-white">
-            <h2 className="text-3xl sm:text-5xl font-black mb-2 uppercase tracking-tighter">Beli Banyak, <br/> Stok Aman!</h2>
-            <p className="text-blue-100 font-medium">Gratis ongkir khusus wilayah Jabodetabek.</p>
+            <h2 className="text-3xl sm:text-5xl font-black mb-2 uppercase tracking-tighter">
+              {banner?.title || <>Beli Banyak, <br/> Stok Aman!</>}
+            </h2>
+            <p className="text-blue-100 font-medium">
+              {banner?.link_url ? "Klik banner untuk detail promo." : "Gratis ongkir khusus wilayah Jabodetabek."}
+            </p>
           </div>
         </section>
 
@@ -195,6 +311,19 @@ export default function HomePage() {
                 <option value="under50">Di bawah Rp 50.000</option>
                 <option value="above50">Rp 50.000 ke atas</option>
               </select>
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="w-full sm:w-auto bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer ml-2"
+              >
+                <option value="default">Urutkan: Default</option>
+                <option value="price-asc">Termurah → Termahal</option>
+                <option value="price-desc">Termahal → Termurah</option>
+                <option value="reviews-desc">Ulasan Terbaik</option>
+                <option value="reviews-asc">Ulasan Terburuk</option>
+                <option value="trending">Trending (Terlaris)</option>
+                <option value="promo">Promo / Harga Murah</option>
+              </select>
             </div>
           </div>
         </div>
@@ -203,7 +332,7 @@ export default function HomePage() {
         <section>
           <div className="flex items-center justify-between mb-8">
              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">
-               List Produk ({filteredProducts.length})
+               List Produk ({sortedProducts.length})
              </h3>
           </div>
 
@@ -214,7 +343,7 @@ export default function HomePage() {
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {filteredProducts.map((product) => (
+              {sortedProducts.map((product) => (
                 <div key={product.id} className="group bg-white rounded-3xl border border-gray-100 hover:shadow-2xl hover:shadow-blue-50 transition-all duration-300 overflow-hidden flex flex-col">
                   <Link href={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
                     {product.tag && (

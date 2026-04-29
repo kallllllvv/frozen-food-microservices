@@ -9,6 +9,11 @@ export default function CheckoutPage() {
   const [total, setTotal] = useState("0");
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState("QRIS");
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({
+    show: false,
+    message: "",
+    type: "error",
+  });
   
   // State untuk form pengiriman
   const [formData, setFormData] = useState({
@@ -48,10 +53,17 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const showToast = (message: string, type: "success" | "error" = "error") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "error" });
+    }, 2600);
+  };
+
   const handleBayar = async () => {
     // Validasi form wajib
     if (!formData.customerName || !formData.customerPhone || !formData.shippingAddress) {
-      alert("Mohon lengkapi Nama, No. WhatsApp, dan Alamat Pengiriman!");
+      showToast("Mohon lengkapi Nama, No. WhatsApp, dan Alamat Pengiriman!", "error");
       return;
     }
 
@@ -61,7 +73,7 @@ export default function CheckoutPage() {
     const cartStr = localStorage.getItem("cart");
 
     if (!userStr || !cartStr) {
-      alert("Sesi tidak valid. Silakan login ulang.");
+      showToast("Sesi tidak valid. Silakan login ulang.", "error");
       setIsProcessing(false);
       return;
     }
@@ -103,14 +115,16 @@ export default function CheckoutPage() {
         // Hapus checkout_total jika masih ada sisa-sisa di localstorage
         localStorage.removeItem("checkout_total");
 
-        alert(`Pembayaran Berhasil via ${selectedMethod}! Pesanan sedang diproses.`);
-        router.push("/success");
+        showToast(`Pembayaran Berhasil via ${selectedMethod}! Pesanan sedang diproses.`, "success");
+        setTimeout(() => {
+          router.push("/success");
+        }, 1200);
       } else {
-        alert(data.message || "Gagal memproses pesanan.");
+        showToast(data.message || "Gagal memproses pesanan.", "error");
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan pada server.");
+      showToast("Terjadi kesalahan pada server.", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -118,6 +132,22 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 text-black py-12">
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-[60] animate-slide-in-right">
+          <div
+            className={`shadow-xl rounded-xl px-4 py-3 min-w-[300px] border ${
+              toast.type === "success"
+                ? "bg-green-600 text-white border-green-500"
+                : "bg-red-600 text-white border-red-500"
+            }`}
+          >
+            <p className="text-xs font-black uppercase tracking-wide mb-0.5">
+              {toast.type === "success" ? "Berhasil" : "Peringatan"}
+            </p>
+            <p className="text-sm font-semibold">{toast.message}</p>
+          </div>
+        </div>
+      )}
       <div className="max-w-md w-full">
         <div className="bg-white rounded-[40px] shadow-2xl shadow-blue-100/50 p-8 border border-white">
           

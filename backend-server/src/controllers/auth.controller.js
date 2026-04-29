@@ -19,11 +19,11 @@ exports.register = async (req, res) => {
 
         // Masukkan user baru ke database
         const [result] = await pool.execute(
-            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-            [name, email, hashedPassword]
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [name, email, hashedPassword, 'user']
         );
 
-        res.status(201).json({ message: "Registrasi berhasil", userId: result.insertId });
+        res.status(201).json({ message: "Registrasi berhasil", userId: result.insertId, role: 'user' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Terjadi kesalahan pada server" });
@@ -46,7 +46,7 @@ exports.login = async (req, res) => {
             res.json({
                 message: "Login berhasil",
                 token,
-                user: { name: user.name, email: user.email }
+                user: { name: user.name, email: user.email, role: user.role || 'user' }
             });
         } else {
             res.status(401).json({ message: "Email atau password salah" });

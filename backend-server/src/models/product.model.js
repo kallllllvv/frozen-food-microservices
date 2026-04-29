@@ -6,10 +6,16 @@ const createTables = async () => {
   try {
     // 1. Cek apakah tabel products sudah ada dan punya kolom 'stock'
     let tableNeedsUpdate = false;
+    let costPriceNeedsUpdate = false;
     try {
       const [columns] = await db.execute("SHOW COLUMNS FROM products LIKE 'stock'");
       if (columns.length === 0) {
         tableNeedsUpdate = true; // Tabel ada tapi versi lama (belum ada 'stock')
+      }
+
+      const [costColumns] = await db.execute("SHOW COLUMNS FROM products LIKE 'cost_price'");
+      if (costColumns.length === 0) {
+        costPriceNeedsUpdate = true;
       }
     } catch (err) {
       tableNeedsUpdate = true; // Tabel sama sekali belum ada
@@ -27,6 +33,7 @@ const createTables = async () => {
           category VARCHAR(50) NOT NULL,
           price INT NOT NULL,
           stock INT NOT NULL DEFAULT 0,
+          cost_price INT NOT NULL DEFAULT 0,
           image TEXT,
           tag VARCHAR(50)
         )
@@ -60,9 +67,11 @@ const createTables = async () => {
       try {
         await connection.beginTransaction();
         for (const p of products) {
+          const [name, category, price, stock, image, tag] = p;
+          const costPrice = Math.round(price * 0.7);
           await connection.execute(
-            `INSERT INTO products (name, category, price, stock, image, tag) VALUES (?, ?, ?, ?, ?, ?)`, 
-            p
+            `INSERT INTO products (name, category, price, stock, cost_price, image, tag) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+            [name, category, price, stock, costPrice, image, tag]
           );
         }
         await connection.commit();
@@ -73,6 +82,12 @@ const createTables = async () => {
       } finally {
         connection.release();
       }
+    }
+
+    if (costPriceNeedsUpdate && !tableNeedsUpdate) {
+      await db.execute('ALTER TABLE products ADD COLUMN cost_price INT NOT NULL DEFAULT 0 AFTER stock');
+      await db.execute('UPDATE products SET cost_price = ROUND(price * 0.7) WHERE cost_price = 0 OR cost_price IS NULL');
+      console.log('✅ Kolom cost_price produk berhasil ditambahkan!');
     }
   } catch (error) {
     console.error('❌ Error saat membuat/mengisi tabel products:', error);
@@ -91,8 +106,48 @@ const fetchProductById = async (id) => {
   return rows[0];
 };
 
+const insertProduct = async (productData) => {
+  const db = getPool();
+  const { name, category, price, stock, image, tag } = productData;
+
+  const [result] = await db.execute(
+    `INSERT INTO products (name, category, price, stock, image, tag)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, category, price, stock, image || null, tag || null]
+  );
+
+  return result.insertId;
+};
+
+const setProductStock = async (id, stock) => {
+  const db = getPool();
+  await db.execute('UPDATE products SET stock = ? WHERE id = ?', [stock, id]);
+};
+
+const addProductStock = async (id, amount) => {
+  const db = getPool();
+  await db.execute('UPDATE products SET stock = stock + ? WHERE id = ?', [amount, id]);
+};
+
+const createProduct = async (productData) => {
+  const db = getPool();
+  const { name, category, price, stock, cost_price, image, tag } = productData;
+
+  const [result] = await db.execute(
+    `INSERT INTO products (name, category, price, stock, cost_price, image, tag)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [name, category, price, stock, cost_price || Math.round(Number(price) * 0.7), image || null, tag || null]
+  );
+
+  return result.insertId;
+};
+
 module.exports = {
   createTables,
   fetchProducts,
-  fetchProductById
+  fetchProductById,
+  insertProduct,
+  setProductStock,
+  addProductStock,
+  createProduct,
 };

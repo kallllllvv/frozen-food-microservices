@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 export default function ProductDetailPage() {
@@ -10,6 +10,16 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: "",
+  });
+
+  // Stabilize fallback values with hooks called unconditionally
+  const displayRating = useMemo(() => (product ? (product.rating ?? 4.8) : 4.8), [product?.id]);
+  const displayReviews = useMemo(() => (product ? (product.reviews ?? (Math.floor(Math.random() * 50) + 10)) : 0), [product?.id]);
+  const displaySold = useMemo(() => (product ? (product.sold ?? (Math.floor(Math.random() * 100) + 20)) : 0), [product?.id]);
+  const displayDesc = useMemo(() => (product ? (product.description || "Produk frozen food berkualitas dengan bahan pilihan terbaik. Sangat praktis untuk disajikan kapan saja.") : ""), [product?.id]);
 
   useEffect(() => {
     const fetchProductFromDB = async () => {
@@ -41,6 +51,17 @@ export default function ProductDetailPage() {
   }, [params.id]);
 
   const handleAddToCart = () => {
+    // Check if user is logged in
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      setToast({ show: true, message: "Buat akun terlebih dahulu untuk menambahkan ke keranjang" });
+      setTimeout(() => {
+        setToast({ show: false, message: "" });
+        router.push("/auth/register");
+      }, 2000);
+      return;
+    }
+
     setIsAdding(true);
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
@@ -60,11 +81,14 @@ export default function ProductDetailPage() {
     }
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
-
     setTimeout(() => {
       setIsAdding(false);
-      alert("Produk berhasil ditambahkan ke keranjang!");
-      router.push("/cart"); 
+      setToast({ show: true, message: "Produk berhasil ditambahkan ke keranjang!" });
+
+      setTimeout(() => {
+        setToast({ show: false, message: "" });
+        router.push("/cart");
+      }, 1200);
     }, 300);
   };
 
@@ -91,14 +115,18 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Fallback data jika kolom tidak ada di database
-  const displayRating = product.rating || 4.8;
-  const displayReviews = product.reviews || Math.floor(Math.random() * 50) + 10;
-  const displaySold = product.sold || Math.floor(Math.random() * 100) + 20;
-  const displayDesc = product.description || "Produk frozen food berkualitas dengan bahan pilihan terbaik. Sangat praktis untuk disajikan kapan saja.";
+  
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-[60] animate-slide-in-right">
+          <div className="bg-green-600 text-white shadow-xl rounded-xl px-4 py-3 border border-green-500 min-w-[280px]">
+            <p className="text-xs font-black uppercase tracking-wide mb-0.5">Berhasil</p>
+            <p className="text-sm font-semibold">{toast.message}</p>
+          </div>
+        </div>
+      )}
       
       {/* HEADER / BREADCRUMB */}
       <div className="bg-white border-b border-gray-200">

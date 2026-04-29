@@ -38,12 +38,45 @@ const initDatabase = async () => {
           name VARCHAR(255) NOT NULL,
           email VARCHAR(255) NOT NULL UNIQUE,
           password VARCHAR(255) NOT NULL,
+          role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `;
       
       await connection.execute(createUsersTableQuery);
+
+      // Tambahkan kolom role jika tabel users sudah terlanjur ada dari versi lama
+      const [roleColumns] = await connection.execute("SHOW COLUMNS FROM users LIKE 'role'");
+      if (roleColumns.length === 0) {
+        await connection.execute("ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') NOT NULL DEFAULT 'user' AFTER password");
+      }
+
+      // Seed akun admin default kalau belum ada
+      const adminEmail = 'admin@frozenshelly.com';
+      const [existingAdmin] = await connection.execute('SELECT id FROM users WHERE email = ?', [adminEmail]);
+      if (existingAdmin.length === 0) {
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash('Admin123!', 10);
+        await connection.execute(
+          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+          ['Admin FrozenShelly', adminEmail, hashedPassword, 'admin']
+        );
+        console.log('✅ Akun admin default berhasil dibuat!');
+      }
+
+      // Seed akun user default kalau belum ada
+      const userEmail = 'user@frozenshelly.com';
+      const [existingUser] = await connection.execute('SELECT id FROM users WHERE email = ?', [userEmail]);
+      if (existingUser.length === 0) {
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash('User123!', 10);
+        await connection.execute(
+          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+          ['User FrozenShelly', userEmail, hashedPassword, 'user']
+        );
+        console.log('✅ Akun user default berhasil dibuat!');
+      }
       console.log('✅ Tabel users siap digunakan!');
 
       connection.release();
