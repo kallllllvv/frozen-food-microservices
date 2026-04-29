@@ -93,7 +93,25 @@ const fetchOrders = async () => {
      ORDER BY created_at DESC`
   );
 
-  return orders;
+  const [items] = await db.execute(
+    `SELECT order_id, id, product_id, product_name, unit_price, quantity, subtotal
+     FROM order_items
+     ORDER BY id ASC`
+  );
+
+  const itemsByOrderId = items.reduce((acc, item) => {
+    if (!acc[item.order_id]) {
+      acc[item.order_id] = [];
+    }
+
+    acc[item.order_id].push(item);
+    return acc;
+  }, {});
+
+  return orders.map((order) => ({
+    ...order,
+    items: itemsByOrderId[order.id] || [],
+  }));
 };
 
 const fetchOrderById = async (orderId) => {

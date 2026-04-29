@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getOrders } from "@/lib/order";
 
 // Tipe data buat TypeScript biar gak error
 interface Order {
-  id: string;
+  id: number;
   date: string;
   status: string;
   total: number;
@@ -28,35 +29,22 @@ export default function HistoryPage() {
 
     const fetchHistory = async () => {
       try {
-        // Simulasi delay loading 
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        
-        // DATA DUMMY AWAL (Biar gak kosong banget)
-        const initialDummy: Order[] = [
-          {
-            id: "FS-9901",
-            date: "28 April 2026",
-            status: "Selesai",
-            total: 125000,
-            items: ["Kanzler Singles 2x", "Sosis Champ 500g"]
-          }
-        ];
-
-        // AMBIL DATA DARI LOCALSTORAGE (Hasil belanja tadi)
-        const savedHistory = localStorage.getItem("order_history");
-        const newOrders = savedHistory ? JSON.parse(savedHistory) : [];
-
-        // Gabungin: Data Baru di atas, Data Dummy di bawah
-        // Karena data dari Checkout pake field 'tanggal', kita sesuaikan ke 'date'
-        const formattedNewOrders = newOrders.map((o: any) => ({
-            id: o.id,
-            date: o.tanggal,
-            status: o.status,
-            total: parseInt(o.total),
-            items: ["Pesanan Baru"] // Karena Checkout gak nyimpen nama item satu-satu
+        const response = await getOrders();
+        const formattedOrders = (response.data || []).map((order: any) => ({
+          id: Number(order.id),
+          date: new Date(order.created_at).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }),
+          status: formatStatus(order.status),
+          total: Number(order.total_amount || 0),
+          items: Array.isArray(order.items)
+            ? order.items.map((item: any) => `${item.product_name} x${item.quantity}`)
+            : [],
         }));
 
-        setOrders([...formattedNewOrders, ...initialDummy]);
+        setOrders(formattedOrders);
         setLoading(false);
       } catch (error) {
         console.error("Gagal ambil history:", error);
@@ -66,6 +54,16 @@ export default function HistoryPage() {
 
     fetchHistory();
   }, [router]);
+
+  const formatStatus = (status: string) => {
+    if (status === "pending") return "Diproses";
+    if (status === "completed") return "Selesai";
+    if (status === "cancelled") return "Dibatalkan";
+
+    return status
+      ? status.charAt(0).toUpperCase() + status.slice(1)
+      : "Diproses";
+  };
 
   if (loading) {
     return (
@@ -106,7 +104,7 @@ export default function HistoryPage() {
                       <p className="text-sm font-bold text-black">{order.date}</p>
                     </div>
                     <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
-                      order.status === "Selesai" ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
+                      order.status === "Selesai" ? "bg-green-100 text-green-600" : order.status === "Dibatalkan" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
                     }`}>
                       {order.status}
                     </span>
