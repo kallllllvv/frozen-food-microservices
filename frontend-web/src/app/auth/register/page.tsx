@@ -1,4 +1,3 @@
-// frontend-web/src/app/auth/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -21,7 +20,7 @@ export default function RegisterPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -29,15 +28,34 @@ export default function RegisterPage() {
       return;
     }
 
-    // SIMPAN DATA KE LOCALSTORAGE BIAR BISA DIBACA PAS LOGIN
-    localStorage.setItem("user_fullname", formData.name);
-    localStorage.setItem("user_email", formData.email);
-    localStorage.setItem("user_password", formData.password);
+    try {
+      // Tembak API Register di Backend
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-    alert("Pendaftaran berhasil! Akun kamu sudah tersimpan di browser.");
+      const data = await response.json();
 
-    // Redirect ke login
-    router.push("/auth/login");
+      if (response.ok) {
+        alert("Pendaftaran berhasil! Silakan login dengan akun baru kamu.");
+        // Redirect ke halaman login setelah sukses mendaftar
+        router.push("/auth/login");
+      } else {
+        // Tampilkan error dari backend (misal: "Email sudah terdaftar")
+        alert(data.message || "Gagal melakukan pendaftaran.");
+      }
+    } catch (error) {
+      console.error("Register Error:", error);
+      alert("Terjadi kesalahan pada server. Pastikan backend sudah menyala.");
+    }
   };
 
   return (

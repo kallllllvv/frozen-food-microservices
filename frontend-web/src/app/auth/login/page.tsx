@@ -9,35 +9,39 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // AMBIL DATA DARI REGISTER TADI
-    const registeredEmail = localStorage.getItem("user_email");
-    const registeredName = localStorage.getItem("user_fullname");
-    const registeredPass = localStorage.getItem("user_password");
+    try {
+      // Tembak API Login di Backend
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // CEK APAKAH LOGINNYA COCOK
-    if (email === registeredEmail && password === registeredPass) {
-      
-      // PERBAIKAN DI SINI: Simpan sebagai JSON string dengan key "user"
-      const userData = {
-        name: registeredName || "User",
-        email: registeredEmail
-      };
-      localStorage.setItem("user", JSON.stringify(userData));
-      
-      localStorage.setItem("token", "dummy-token-login");
+      const data = await response.json();
 
-      alert(`Selamat datang kembali, ${registeredName}!`);
-      
-      // Kasih sedikit jeda sebelum redirect biar localStorage beneran kesimpen
-      setTimeout(() => {
-        router.push("/");
-      }, 100);
+      if (response.ok) {
+        // Jika sukses, simpan token dan data user dari database ke localStorage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
 
-    } else {
-      alert("Email atau Password salah! Pastikan sama dengan pas daftar tadi.");
+        alert(`Selamat datang kembali, ${data.user.name}!`);
+        
+        // Kasih sedikit jeda sebelum redirect biar localStorage beneran kesimpen
+        setTimeout(() => {
+          router.push("/");
+        }, 100);
+      } else {
+        // Tampilkan pesan error dari backend (misal: "Email atau password salah")
+        alert(data.message || "Gagal login. Periksa kembali email dan password Anda.");
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Terjadi kesalahan pada server. Pastikan backend sudah menyala.");
     }
   };
 
@@ -83,7 +87,8 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="text-gray-900 bg-white appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"               placeholder="Masukkan password Anda"
+                className="text-gray-900 bg-white appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"              
+                placeholder="Masukkan password Anda"
               />
             </div>
           </div>
