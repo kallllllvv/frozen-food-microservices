@@ -8,6 +8,10 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
 
+  // State untuk Data Produk dari API Backend
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   // State untuk Filter & Pencarian
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -15,6 +19,8 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // 1. Cek status login
     const user = localStorage.getItem("user"); 
     if (user) {
       try {
@@ -25,71 +31,36 @@ export default function HomePage() {
         console.error("Gagal membaca data user:", error);
       }
     }
+
+    // 2. Fetch data produk dari Backend
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/products");
+        if (response.ok) {
+          const data = await response.json();
+          // Sesuaikan dengan respon backend kamu, misal datanya ada di data.data atau langsung array
+          setProducts(data.data || data); 
+        } else {
+          console.error("Gagal mengambil data produk");
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
-  // Data Produk
-  const products = [
-    { 
-      id: 1, 
-      name: "Nugget Ayam Crispy 500gr", 
-      category: "Ayam",
-      priceText: "Rp 45.000", 
-      priceNum: 45000,
-      stock: 4, 
-      image: "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=500&auto=format&fit=crop", 
-      tag: "Best Seller" 
-    },
-    { 
-      id: 2, 
-      name: "Sosis Sapi Bakar Jumbo", 
-      category: "Daging",
-      priceText: "Rp 52.000", 
-      priceNum: 52000,
-      stock: 25, 
-      image: "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=500&auto=format&fit=crop", 
-      tag: "Diskon" 
-    },
-    { 
-      id: 3, 
-      name: "Kentang Goreng Shoestring 1kg", 
-      category: "Camilan",
-      priceText: "Rp 32.000", 
-      priceNum: 32000,
-      stock: 8, 
-      image: "https://images.unsplash.com/photo-1630384066202-18d038253a1d?q=80&w=500&auto=format&fit=crop", 
-      tag: "" 
-    },
-    { 
-      id: 4, 
-      name: "Bakso Sapi Asli Isi 50", 
-      category: "Daging",
-      priceText: "Rp 60.000", 
-      priceNum: 60000,
-      stock: 12, 
-      image: "https://images.unsplash.com/photo-1529006557810-264b5ca99197?q=80&w=500&auto=format&fit=crop", 
-      tag: "Baru" 
-    },
-    { 
-      id: 5, 
-      name: "Dimsum Ayam Mix Isi 15", 
-      category: "Camilan",
-      priceText: "Rp 40.000", 
-      priceNum: 40000,
-      stock: 3, 
-      image: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?q=80&w=500&auto=format&fit=crop", 
-      tag: "" 
-    },
-    { 
-      id: 6, 
-      name: "Ikan Dory Fillet 1kg", 
-      category: "Seafood",
-      priceText: "Rp 55.000", 
-      priceNum: 55000,
-      stock: 15, 
-      image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?q=80&w=500&auto=format&fit=crop", 
-      tag: "Frozen" 
-    },
-  ];
+  // Fungsi utilitas untuk format harga angka (misal: 45000) menjadi "Rp 45.000"
+  const formatRupiah = (angka: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(angka);
+  };
 
   const categories = [
     { name: "Semua", icon: "🍱" },
@@ -99,13 +70,14 @@ export default function HomePage() {
     { name: "Camilan", icon: "🍟" },
   ];
 
-  // Logika Filtering
+  // Logika Filtering (dijalankan pada data 'products' yang sudah di-fetch)
   const filteredProducts = products.filter((product) => {
     const matchCategory = activeCategory === "Semua" || product.category === activeCategory;
     
     let matchPrice = true;
-    if (priceFilter === "under50") matchPrice = product.priceNum < 50000;
-    else if (priceFilter === "above50") matchPrice = product.priceNum >= 50000;
+    const priceNum = Number(product.price); // Pastikan harga menjadi angka
+    if (priceFilter === "under50") matchPrice = priceNum < 50000;
+    else if (priceFilter === "above50") matchPrice = priceNum >= 50000;
 
     const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -126,7 +98,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
           <Link href="/" className="text-2xl font-black bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent italic">
-            FrozenGo
+            FrozenShelly
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -231,11 +203,16 @@ export default function HomePage() {
         <section>
           <div className="flex items-center justify-between mb-8">
              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">
-                List Produk ({filteredProducts.length})
+               List Produk ({filteredProducts.length})
              </h3>
           </div>
 
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="py-24 text-center">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+               <p className="mt-4 text-gray-500 font-medium">Memuat produk...</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredProducts.map((product) => (
                 <div key={product.id} className="group bg-white rounded-3xl border border-gray-100 hover:shadow-2xl hover:shadow-blue-50 transition-all duration-300 overflow-hidden flex flex-col">
@@ -245,7 +222,7 @@ export default function HomePage() {
                         {product.tag}
                       </span>
                     )}
-                    <img src={product.image} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" />
+                    <img src={product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" />
                   </Link>
 
                   <div className="p-5 flex-1 flex flex-col">
@@ -254,7 +231,9 @@ export default function HomePage() {
                         {product.name}
                       </h4>
                     </Link>
-                    <p className="text-base font-black text-gray-900 mb-3">{product.priceText}</p>
+                    <p className="text-base font-black text-gray-900 mb-3">
+                      {formatRupiah(product.price)}
+                    </p>
                     <div className="mb-4 flex items-center gap-1.5 mt-auto">
                       <div className={`h-1.5 w-1.5 rounded-full ${product.stock <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
                       <p className={`text-[10px] font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-green-600'}`}>

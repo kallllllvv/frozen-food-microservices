@@ -1,43 +1,58 @@
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const users = require('../models/user.model');
+const { getPool } = require('../config/db'); // Sesuaikan pathnya
 
-const SECRET_KEY = "rahasia_frozen_shelly_123"; // Kunci rahasia token
+exports.register = async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const pool = getPool();
 
-const register = (req, res) => {
-  const { username, password } = req.body;
-  
-  // Cek apakah username sudah ada
-  const existingUser = users.find(u => u.username === username);
-  if (existingUser) {
-    return res.status(400).json({ success: false, message: "Username sudah terdaftar!" });
-  }
+        // Cek apakah email sudah ada
+        const [rows] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+        if (rows.length > 0) {
+            return res.status(400).json({ message: "Email sudah terdaftar" });
+        }
 
-  // Simpan user baru
-  const newUser = { id: users.length + 1, username, password };
-  users.push(newUser);
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-  res.status(201).json({ success: true, message: "Daftar berhasil! Silakan login." });
+        // Masukkan user baru ke database
+        const [result] = await pool.execute(
+            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+            [name, email, hashedPassword]
+        );
+
+        res.status(201).json({ message: "Registrasi berhasil", userId: result.insertId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Terjadi kesalahan pada server" });
+    }
 };
 
-const login = (req, res) => {
-  const { username, password } = req.body;
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const pool = getPool();
 
-  // Cari user di "database"
-  const user = users.find(u => u.username === username && u.password === password);
-  
-  if (!user) {
-    return res.status(401).json({ success: false, message: "Username atau Password salah!" });
-  }
-
-  // Buat KTP Digital (Token)
-  const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, { expiresIn: '1h' });
-
-  res.status(200).json({ 
-    success: true, 
-    message: "Login berhasil!",
-    token: token,
-    user: { username: user.username }
-  });
+        // Cari user berdasarkan email
+        const [rows] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+        const user = rows[0];
+        
+        // Cek user ada dan password cocok
+        if (user && (await bcrypt.compare(password, user.password))) {
+            const token = jwt.sign({ id: user.id }, 'secret_key_123', { expiresIn: '1d' });
+            
+            res.json({
+                message: "Login berhasil",
+                token,
+                user: { name: user.name, email: user.email }
+            });
+        } else {
+            res.status(401).json({ message: "Email atau password salah" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Terjadi kesalahan pada server" });
+    }
 };
-
-module.exports = { register, login };
