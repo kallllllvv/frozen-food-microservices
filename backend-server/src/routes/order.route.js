@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const OrderController = require('../controllers/order.controller');
 
-router.get('/', OrderController.getOrders);
+// PENTING: /history/:email harus di atas /:id
+router.post('/', OrderController.createOrder); // atau '/create' tergantung setup-mu
+router.get('/history/:email', OrderController.getHistoryByEmail);
 router.get('/:id', OrderController.getOrderDetail);
-router.post('/', OrderController.createOrder);
+router.get('/', OrderController.getOrders); 
 
 module.exports = router;

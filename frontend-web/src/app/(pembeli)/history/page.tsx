@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// Tipe data buat TypeScript biar gak error
+// Tipe data disesuaikan dengan response dari backend MySQL kita
 interface Order {
   id: string;
   date: string;
@@ -21,45 +21,30 @@ export default function HistoryPage() {
   useEffect(() => {
     // 1. Cek dulu, udah login belum? 
     const token = localStorage.getItem("token");
-    if (!token) {
+    const userStr = localStorage.getItem("user");
+
+    if (!token || !userStr) {
       router.push("/auth/login");
       return;
     }
 
+    const user = JSON.parse(userStr);
+
     const fetchHistory = async () => {
       try {
-        // Simulasi delay loading 
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // AMBIL DATA DARI BACKEND MENGGUNAKAN EMAIL USER
+        const response = await fetch(`http://localhost:5000/api/orders/history/${user.email}`);
         
-        // DATA DUMMY AWAL (Biar gak kosong banget)
-        const initialDummy: Order[] = [
-          {
-            id: "FS-9901",
-            date: "28 April 2026",
-            status: "Selesai",
-            total: 125000,
-            items: ["Kanzler Singles 2x", "Sosis Champ 500g"]
-          }
-        ];
-
-        // AMBIL DATA DARI LOCALSTORAGE (Hasil belanja tadi)
-        const savedHistory = localStorage.getItem("order_history");
-        const newOrders = savedHistory ? JSON.parse(savedHistory) : [];
-
-        // Gabungin: Data Baru di atas, Data Dummy di bawah
-        // Karena data dari Checkout pake field 'tanggal', kita sesuaikan ke 'date'
-        const formattedNewOrders = newOrders.map((o: any) => ({
-            id: o.id,
-            date: o.tanggal,
-            status: o.status,
-            total: parseInt(o.total),
-            items: ["Pesanan Baru"] // Karena Checkout gak nyimpen nama item satu-satu
-        }));
-
-        setOrders([...formattedNewOrders, ...initialDummy]);
-        setLoading(false);
+        if (response.ok) {
+          const data = await response.json();
+          // Simpan data dari database ke dalam state orders
+          setOrders(data);
+        } else {
+          console.error("Gagal mengambil riwayat belanja");
+        }
       } catch (error) {
-        console.error("Gagal ambil history:", error);
+        console.error("Server error:", error);
+      } finally {
         setLoading(false);
       }
     };

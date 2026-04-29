@@ -1,5 +1,6 @@
 const OrderService = require('../services/order.service');
 
+// 1. Membuat pesanan baru (Checkout)
 const createOrder = async (req, res) => {
   try {
     const order = await OrderService.createOrder(req.body);
@@ -16,6 +17,7 @@ const createOrder = async (req, res) => {
   }
 };
 
+// 2. Mengambil semua pesanan (Biasanya untuk halaman Admin)
 const getOrders = async (req, res) => {
   try {
     const orders = await OrderService.listOrders();
@@ -31,6 +33,7 @@ const getOrders = async (req, res) => {
   }
 };
 
+// 3. Mengambil detail pesanan berdasarkan ID (Untuk Nota)
 const getOrderDetail = async (req, res) => {
   try {
     const order = await OrderService.getOrderDetail(req.params.id);
@@ -42,10 +45,23 @@ const getOrderDetail = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: order,
+    // Langsung mereturn objek order agar sesuai dengan state nota frontend
+    res.status(200).json(order);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
+  }
+};
+
+// 4. Mengambil riwayat pesanan berdasarkan email (Untuk History User)
+const getHistoryByEmail = async (req, res) => {
+  try {
+    // Memanggil listOrdersByEmail dari order.service.js
+    const orders = await OrderService.listOrdersByEmail(req.params.email);
+    // Langsung return array untuk mapping di frontend
+    res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -58,4 +74,5 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderDetail,
+  getHistoryByEmail 
 };

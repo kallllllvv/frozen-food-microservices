@@ -9,10 +9,26 @@ export default function CheckoutPage() {
   const [total, setTotal] = useState("0");
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState("QRIS");
+  
+  // State untuk form pengiriman
+  const [formData, setFormData] = useState({
+    customerName: "",
+    customerPhone: "",
+    shippingAddress: "",
+    notes: ""
+  });
 
   useEffect(() => {
+    // Ambil total dari localStorage
     const savedTotal = localStorage.getItem("checkout_total");
     if (savedTotal) setTotal(savedTotal);
+
+    // Ambil nama dari data user login untuk default input
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setFormData(prev => ({ ...prev, customerName: user.name || "" }));
+    }
   }, []);
 
   const methods = [
@@ -21,31 +37,78 @@ export default function CheckoutPage() {
     { id: "GOPAY", name: "GoPay / DANA", icon: "💳", color: "bg-green-600" },
   ];
 
-  const handleBayar = () => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleBayar = async () => {
+    // Validasi form wajib
+    if (!formData.customerName || !formData.customerPhone || !formData.shippingAddress) {
+      alert("Mohon lengkapi Nama, No. WhatsApp, dan Alamat Pengiriman!");
+      return;
+    }
+
     setIsProcessing(true);
 
-    // LOGIKA SIMPAN KE HISTORY
-    const pesananBaru = {
-      id: "FS-" + Math.floor(1000 + Math.random() * 9000),
-      tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      total: total,
-      status: "Diproses",
-      metode: selectedMethod
-    };
+    const userStr = localStorage.getItem("user");
+    const cartStr = localStorage.getItem("cart");
 
-    setTimeout(() => {
-      // Ambil data history lama, tambah pesanan baru di paling atas
-      const historyLama = JSON.parse(localStorage.getItem("order_history") || "[]");
-      localStorage.setItem("order_history", JSON.stringify([pesananBaru, ...historyLama]));
+    if (!userStr || !cartStr) {
+      alert("Sesi tidak valid. Silakan login ulang.");
+      setIsProcessing(false);
+      return;
+    }
 
-      alert(`Pembayaran Berhasil via ${selectedMethod}! Pesanan sedang diproses.`);
-      localStorage.removeItem("checkout_total");
-      router.push("/success");
-    }, 1500);
+    const user = JSON.parse(userStr);
+    // Ambil item yang di-checklist (selected: true)
+    const cartItems = JSON.parse(cartStr).filter((item: any) => item.selected);
+
+    // Format item agar sesuai dengan backend (butuh productId dan quantity)
+    const formattedItems = cartItems.map((item: any) => ({
+      productId: item.id,
+      quantity: item.quantity
+    }));
+
+    try {
+      // Tembak API Create Order (sesuaikan endpoint dengan route kamu, e.g. /api/orders)
+      const res = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          customerName: formData.customerName,
+          customerPhone: formData.customerPhone,
+          shippingAddress: formData.shippingAddress,
+          notes: formData.notes,
+          method: selectedMethod,
+          totalAmount: parseInt(total),
+          items: formattedItems
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success !== false) {
+        // Hapus item yang dibeli dari keranjang
+        const sisaKeranjang = JSON.parse(cartStr).filter((item: any) => !item.selected);
+        localStorage.setItem("cart", JSON.stringify(sisaKeranjang));
+        localStorage.removeItem("checkout_total");
+
+        alert(`Pembayaran Berhasil via ${selectedMethod}! Pesanan sedang diproses.`);
+        router.push("/success");
+      } else {
+        alert(data.message || "Gagal memproses pesanan.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan pada server.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 text-black">
+    <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 text-black py-12">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-[40px] shadow-2xl shadow-blue-100/50 p-8 border border-white">
           
@@ -53,7 +116,7 @@ export default function CheckoutPage() {
             <div className="inline-flex w-14 h-14 bg-blue-50 rounded-2xl items-center justify-center mb-4">
               <span className="text-2xl">🛡️</span>
             </div>
-            <h1 className="text-xl font-black uppercase tracking-tighter text-black">Pilih Pembayaran</h1>
+            <h1 className="text-xl font-black uppercase tracking-tighter text-black">Checkout</h1>
           </div>
 
           <div className="bg-gray-900 p-6 rounded-[30px] mb-8 text-white">
@@ -61,6 +124,31 @@ export default function CheckoutPage() {
             <p className="text-2xl font-black tracking-tighter">
               Rp {parseInt(total).toLocaleString('id-ID')}
             </p>
+          </div>
+
+          {/* FORM PENGIRIMAN */}
+          <div className="space-y-4 mb-8">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-2">Info Pengiriman</p>
+            <input 
+              type="text" name="customerName" placeholder="Nama Penerima" required
+              value={formData.customerName} onChange={handleInputChange}
+              className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:border-blue-500 focus:ring-blue-500 outline-none transition-all"
+            />
+            <input 
+              type="tel" name="customerPhone" placeholder="No. WhatsApp" required
+              value={formData.customerPhone} onChange={handleInputChange}
+              className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
+            />
+            <textarea 
+              name="shippingAddress" placeholder="Alamat Lengkap (Jalan, RT/RW, Patokan)" required rows={3}
+              value={formData.shippingAddress} onChange={handleInputChange}
+              className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:border-blue-500 outline-none transition-all resize-none"
+            />
+            <input 
+              type="text" name="notes" placeholder="Catatan Tambahan (Opsional)"
+              value={formData.notes} onChange={handleInputChange}
+              className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
+            />
           </div>
 
           {/* OPSI METODE BAYAR */}

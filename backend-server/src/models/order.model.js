@@ -6,11 +6,13 @@ const createTables = async () => {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS orders (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      customer_name VARCHAR(100) NOT NULL,
-      customer_phone VARCHAR(30) NOT NULL,
-      shipping_address TEXT NOT NULL,
+      user_email VARCHAR(255) NOT NULL,
+      payment_method VARCHAR(50) NOT NULL,
+      customer_name VARCHAR(100) NULL,
+      customer_phone VARCHAR(30) NULL,
+      shipping_address TEXT NULL,
       notes TEXT NULL,
-      status VARCHAR(30) NOT NULL DEFAULT 'pending',
+      status VARCHAR(30) NOT NULL DEFAULT 'Diproses',
       total_amount INT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -36,25 +38,16 @@ const createTables = async () => {
 
 const insertOrder = async (orderData) => {
   const db = getPool();
-
-  const {
-    customerName,
-    customerPhone,
-    shippingAddress,
-    notes,
-    totalAmount,
-    items,
-  } = orderData;
-
+  const { user_email, payment_method, total_amount, items, customer_name, customer_phone, shipping_address, notes } = orderData;
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (customer_name, customer_phone, shipping_address, notes, total_amount)
-       VALUES (?, ?, ?, ?, ?)` ,
-      [customerName, customerPhone, shippingAddress, notes || null, totalAmount]
+      `INSERT INTO orders (user_email, payment_method, total_amount, customer_name, customer_phone, shipping_address, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)` ,
+      [user_email, payment_method, total_amount, customer_name || null, customer_phone || null, shipping_address || null, notes || null]
     );
 
     const orderId = orderResult.insertId;
@@ -65,11 +58,11 @@ const insertOrder = async (orderData) => {
          VALUES (?, ?, ?, ?, ?, ?)` ,
         [
           orderId,
-          item.productId,
-          item.productName,
-          item.unitPrice,
+          item.id,
+          item.name,
+          item.price,
           item.quantity,
-          item.subtotal,
+          item.price * item.quantity
         ]
       );
     }
@@ -84,34 +77,36 @@ const insertOrder = async (orderData) => {
   }
 };
 
-const fetchOrders = async () => {
+const fetchOrdersByEmail = async (email) => {
   const db = getPool();
-
   const [orders] = await db.execute(
-    `SELECT id, customer_name, customer_phone, shipping_address, notes, status, total_amount, created_at, updated_at
-     FROM orders
-     ORDER BY created_at DESC`
+    `SELECT o.id, o.status, o.total_amount as total, DATE_FORMAT(o.created_at, '%d %M %Y') as date,
+            GROUP_CONCAT(oi.product_name SEPARATOR ', ') as item_names
+     FROM orders o
+     LEFT JOIN order_items oi ON o.id = oi.order_id
+     WHERE o.user_email = ?
+     GROUP BY o.id
+     ORDER BY o.created_at DESC`,
+    [email]
   );
-
   return orders;
 };
 
+// BAGIAN INI YANG DIUBAH AGAR MENGAMBIL DATA ALAMAT & CUSTOMER NAME
 const fetchOrderById = async (orderId) => {
   const db = getPool();
 
   const [orders] = await db.execute(
-    `SELECT id, customer_name, customer_phone, shipping_address, notes, status, total_amount, created_at, updated_at
+    `SELECT id, user_email, payment_method, customer_name, customer_phone, shipping_address, notes, status, total_amount as total, DATE_FORMAT(created_at, '%d %M %Y') as date
      FROM orders
      WHERE id = ?`,
     [orderId]
   );
 
-  if (!orders.length) {
-    return null;
-  }
+  if (!orders.length) return null;
 
   const [items] = await db.execute(
-    `SELECT id, product_id, product_name, unit_price, quantity, subtotal
+    `SELECT product_name as nama, unit_price as harga, quantity as qty, subtotal
      FROM order_items
      WHERE order_id = ?
      ORDER BY id ASC`,
@@ -124,6 +119,6 @@ const fetchOrderById = async (orderId) => {
 module.exports = {
   createTables,
   insertOrder,
-  fetchOrders,
+  fetchOrdersByEmail,
   fetchOrderById,
 };

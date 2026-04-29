@@ -1,19 +1,21 @@
 const ProductService = require('../services/product.service');
 
-const getProducts = (req, res) => {
+const getProducts = async (req, res) => {
   try {
     const { category } = req.query;
-    const products = ProductService.fetchAllProducts(category);
+    // Tambahkan await di sini
+    const products = await ProductService.fetchAllProducts(category);
     res.status(200).json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getProductDetail = (req, res) => {
+const getProductDetail = async (req, res) => {
   try {
-    const product = ProductService.fetchProductById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    // Tambahkan await di sini
+    const product = await ProductService.fetchProductById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
     res.status(200).json({ success: true, data: product });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
