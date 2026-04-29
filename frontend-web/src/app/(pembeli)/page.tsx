@@ -99,7 +99,7 @@ export default function HomePage() {
     { name: "Camilan", icon: "🍟" },
   ];
 
-  // Logika Filtering (Kategori + Harga + Pencarian)
+  // Logika Filtering
   const filteredProducts = products.filter((product) => {
     const matchCategory = activeCategory === "Semua" || product.category === activeCategory;
     
@@ -129,16 +129,30 @@ export default function HomePage() {
             FrozenGo
           </Link>
 
-          <div className="flex items-center gap-4">
-            <Link href="/cart" className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* ICON HISTORY (BOX) */}
+            {isLoggedIn && (
+              <Link href="/history" className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors group" title="Riwayat Pesanan">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </Link>
+            )}
+
+            <Link href="/cart" className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors group">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </Link>
 
             {isLoggedIn ? (
               <div className="flex items-center gap-3 border-l pl-4 border-gray-200">
-                <span className="text-sm font-bold text-gray-700">Halo, {userName}</span>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Halo,</span>
+                  <Link href="/history" className="text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors">
+                    {userName}
+                  </Link>
+                </div>
                 <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition-all">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -167,7 +181,6 @@ export default function HomePage() {
 
         {/* --- FILTER & SEARCH SECTION --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 bg-white sticky top-16 z-40 py-2">
-          
           {/* Kategori */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
             {categories.map((cat) => (
@@ -184,7 +197,6 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            {/* Kolom Pencarian */}
             <div className="relative w-full sm:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,7 +212,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Filter Harga */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="hidden xl:block text-xs font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Harga:</span>
               <select 
@@ -214,7 +225,6 @@ export default function HomePage() {
               </select>
             </div>
           </div>
-
         </div>
 
         {/* PRODUCT GRID */}
@@ -229,7 +239,6 @@ export default function HomePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredProducts.map((product) => (
                 <div key={product.id} className="group bg-white rounded-3xl border border-gray-100 hover:shadow-2xl hover:shadow-blue-50 transition-all duration-300 overflow-hidden flex flex-col">
-                  
                   <Link href={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
                     {product.tag && (
                       <span className="absolute top-3 left-3 z-10 bg-blue-600 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase italic shadow-md">
@@ -246,14 +255,12 @@ export default function HomePage() {
                       </h4>
                     </Link>
                     <p className="text-base font-black text-gray-900 mb-3">{product.priceText}</p>
-                    
                     <div className="mb-4 flex items-center gap-1.5 mt-auto">
                       <div className={`h-1.5 w-1.5 rounded-full ${product.stock <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
                       <p className={`text-[10px] font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-green-600'}`}>
                         Stok: {product.stock} {product.stock <= 5 ? '(Menipis!)' : '(Aman)'}
                       </p>
                     </div>
-                    
                     <Link href={`/product/${product.id}`} className="block w-full">
                        <button className="w-full py-2.5 bg-gray-50 text-gray-700 text-xs font-black rounded-2xl hover:bg-gray-900 hover:text-white transition-all uppercase tracking-widest cursor-pointer">
                          Lihat Detail
