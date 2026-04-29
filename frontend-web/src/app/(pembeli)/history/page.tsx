@@ -38,7 +38,6 @@ export default function HistoryPage() {
         
         if (response.ok) {
           const data = await response.json();
-          // Data dari backend sudah diformat dengan benar (total, date, items[])
           setOrders(data);
         } else {
           console.error("Gagal mengambil riwayat belanja");
@@ -78,26 +77,31 @@ export default function HistoryPage() {
   return (
     <main className="min-h-screen bg-[#F5F7FA] text-gray-800 font-sans pb-20">
       
-      {/* HEADER & TABS DIJADIKAN SATU KESATUAN (STICKY TOP-0) 
-        Agar saat di-scroll, keduanya menempel mulus tanpa ada jarak kosong di atasnya.
-      */}
+      {/* HEADER & TABS DIJADIKAN SATU KESATUAN (STICKY TOP-0) */}
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md shadow-sm shadow-gray-100/50 border-b border-gray-200">
         
-        {/* Bagian 1: Header Navigasi (Sesuai dengan Request) */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <button 
-            onClick={() => router.push('/')} 
-            className="text-blue-600 font-semibold flex items-center gap-2 hover:text-blue-700 transition-colors cursor-pointer"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-            Belanja Lagi
-          </button>
-          <div className="h-4 w-px bg-gray-300" />
-          <p className="text-xs text-gray-500 font-medium tracking-wide">
-            Riwayat Pesanan
-          </p>
+        {/* Bagian 1: Header Navigasi */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.push('/')} 
+              className="text-blue-600 font-semibold flex items-center gap-2 hover:text-blue-700 transition-colors cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              Belanja Lagi
+            </button>
+            <div className="h-4 w-px bg-gray-300" />
+            <p className="text-xs text-gray-500 font-medium tracking-wide">
+              Riwayat Pesanan
+            </p>
+          </div>
+          
+          {/* Tambahan Frozen Shelly di Kanan */}
+          <div className="hidden sm:block text-[#0077B6] font-black italic text-xl">
+            Frozen Shelly
+          </div>
         </div>
 
         {/* Bagian 2: Tabs Kategori */}
@@ -165,7 +169,6 @@ export default function HistoryPage() {
 
                   {/* Card Body (Produk) */}
                   <div className="p-5">
-                    {/* Tampilkan maksimal 2 produk, sisanya disingkat */}
                     {order.items.slice(0, 2).map((item, index) => (
                       <div key={index} className="flex items-center gap-4 mb-3 last:mb-0">
                         <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-200">
@@ -178,7 +181,6 @@ export default function HistoryPage() {
                       </div>
                     ))}
                     
-                    {/* Jika lebih dari 2 item, tampilkan teks sisa */}
                     {order.items.length > 2 && (
                       <div className="text-xs font-bold text-gray-400 mt-2 pl-20">
                         + {order.items.length - 2} produk lainnya

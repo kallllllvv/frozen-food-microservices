@@ -76,21 +76,28 @@ export default function CartPage() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
       
       {/* HEADER / BREADCRUMB (Sama dengan Product Detail) */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <button 
-            onClick={() => router.push('/')} 
-            className="text-blue-600 font-semibold flex items-center gap-2 hover:text-blue-700 transition-colors cursor-pointer"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-            Belanja Lagi
-          </button>
-          <div className="h-4 w-px bg-gray-300" />
-          <p className="text-xs text-gray-500 font-medium tracking-wide">
-            Keranjang Belanja
-          </p>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.push('/')} 
+              className="text-blue-600 font-semibold flex items-center gap-2 hover:text-blue-700 transition-colors cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              Belanja Lagi
+            </button>
+            <div className="h-4 w-px bg-gray-300" />
+            <p className="text-xs text-gray-500 font-medium tracking-wide">
+              Keranjang Belanja
+            </p>
+          </div>
+          
+           {/* Tambahan Frozen Shelly di Kanan */}
+           <div className="hidden sm:block text-[#0077B6] font-black italic text-xl">
+            Frozen Shelly
+          </div>
         </div>
       </div>
 
@@ -204,7 +211,7 @@ export default function CartPage() {
 
           {/* KOLOM KANAN: Ringkasan Belanja */}
           <div className="w-full lg:w-96 flex-shrink-0">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8 sticky top-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8 sticky top-24">
               <h2 className="text-lg font-bold text-gray-900 mb-6">Ringkasan Belanja</h2>
               
               <div className="space-y-4 mb-6 text-sm">
