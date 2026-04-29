@@ -79,32 +79,29 @@ const insertOrder = async (orderData) => {
 
 const fetchOrdersByEmail = async (email) => {
   const db = getPool();
+  
+  // 1. Ambil data order
   const [orders] = await db.execute(
-    `SELECT o.id, o.status, o.total_amount as total, DATE_FORMAT(o.created_at, '%d %M %Y') as date,
-            GROUP_CONCAT(oi.product_name SEPARATOR ', ') as item_names
+    `SELECT o.id, o.status, o.total_amount as total, DATE_FORMAT(o.created_at, '%d %M %Y') as date
      FROM orders o
-     LEFT JOIN order_items oi ON o.id = oi.order_id
      WHERE o.user_email = ?
-     GROUP BY o.id
      ORDER BY o.created_at DESC`,
     [email]
   );
-<<<<<<< HEAD
-  return orders;
-=======
 
+  // 2. Ambil semua item untuk order-order tersebut
   const [items] = await db.execute(
-    `SELECT order_id, id, product_id, product_name, unit_price, quantity, subtotal
+    `SELECT order_id, product_name, quantity
      FROM order_items
      ORDER BY id ASC`
   );
 
+  // 3. Gabungkan item ke dalam masing-masing order
   const itemsByOrderId = items.reduce((acc, item) => {
     if (!acc[item.order_id]) {
       acc[item.order_id] = [];
     }
-
-    acc[item.order_id].push(item);
+    acc[item.order_id].push(`${item.product_name} x${item.quantity}`);
     return acc;
   }, {});
 
@@ -112,10 +109,8 @@ const fetchOrdersByEmail = async (email) => {
     ...order,
     items: itemsByOrderId[order.id] || [],
   }));
->>>>>>> db458ee360e835ecc2d996cae76eba89ec3950ef
 };
 
-// BAGIAN INI YANG DIUBAH AGAR MENGAMBIL DATA ALAMAT & CUSTOMER NAME
 const fetchOrderById = async (orderId) => {
   const db = getPool();
 

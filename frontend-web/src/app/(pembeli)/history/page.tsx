@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getOrders } from "@/lib/order";
 
-// Tipe data disesuaikan dengan response dari backend MySQL kita
 interface Order {
   id: number;
   date: string;
@@ -20,7 +18,6 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Cek dulu, udah login belum? 
     const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
 
@@ -33,36 +30,15 @@ export default function HistoryPage() {
 
     const fetchHistory = async () => {
       try {
-<<<<<<< HEAD
-        // AMBIL DATA DARI BACKEND MENGGUNAKAN EMAIL USER
         const response = await fetch(`http://localhost:5000/api/orders/history/${user.email}`);
         
         if (response.ok) {
           const data = await response.json();
-          // Simpan data dari database ke dalam state orders
+          // Data dari backend sudah diformat dengan benar (total, date, items[])
           setOrders(data);
         } else {
           console.error("Gagal mengambil riwayat belanja");
         }
-=======
-        const response = await getOrders();
-        const formattedOrders = (response.data || []).map((order: any) => ({
-          id: Number(order.id),
-          date: new Date(order.created_at).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          }),
-          status: formatStatus(order.status),
-          total: Number(order.total_amount || 0),
-          items: Array.isArray(order.items)
-            ? order.items.map((item: any) => `${item.product_name} x${item.quantity}`)
-            : [],
-        }));
-
-        setOrders(formattedOrders);
-        setLoading(false);
->>>>>>> db458ee360e835ecc2d996cae76eba89ec3950ef
       } catch (error) {
         console.error("Server error:", error);
       } finally {
@@ -74,13 +50,11 @@ export default function HistoryPage() {
   }, [router]);
 
   const formatStatus = (status: string) => {
-    if (status === "pending") return "Diproses";
-    if (status === "completed") return "Selesai";
-    if (status === "cancelled") return "Dibatalkan";
-
-    return status
-      ? status.charAt(0).toUpperCase() + status.slice(1)
-      : "Diproses";
+    const s = status.toLowerCase();
+    if (s === "pending" || s === "diproses") return "Diproses";
+    if (s === "completed" || s === "selesai") return "Selesai";
+    if (s === "cancelled" || s === "dibatalkan") return "Dibatalkan";
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   if (loading) {
@@ -122,9 +96,9 @@ export default function HistoryPage() {
                       <p className="text-sm font-bold text-black">{order.date}</p>
                     </div>
                     <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
-                      order.status === "Selesai" ? "bg-green-100 text-green-600" : order.status === "Dibatalkan" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                      formatStatus(order.status) === "Selesai" ? "bg-green-100 text-green-600" : formatStatus(order.status) === "Dibatalkan" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
                     }`}>
-                      {order.status}
+                      {formatStatus(order.status)}
                     </span>
                   </div>
                 </div>
@@ -143,12 +117,12 @@ export default function HistoryPage() {
                 <div className="flex justify-between items-end bg-[#F8FAFC] p-6 rounded-[30px]">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Transaksi</p>
-                    <p className="text-3xl font-black text-black tracking-tighter">Rp {order.total.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-black tracking-tighter">Rp {order.total.toLocaleString('id-ID')}</p>
                   </div>
                   <Link href={`/history/${order.id}`}>
-                  <button className="bg-black text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#0077B6] transition-all">
-                    Detail Nota
-                  </button>
+                    <button className="bg-black text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#0077B6] transition-all">
+                      Detail Nota
+                    </button>
                   </Link>
                 </div>
               </div>
