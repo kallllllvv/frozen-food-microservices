@@ -89,7 +89,30 @@ const fetchOrdersByEmail = async (email) => {
      ORDER BY o.created_at DESC`,
     [email]
   );
+<<<<<<< HEAD
   return orders;
+=======
+
+  const [items] = await db.execute(
+    `SELECT order_id, id, product_id, product_name, unit_price, quantity, subtotal
+     FROM order_items
+     ORDER BY id ASC`
+  );
+
+  const itemsByOrderId = items.reduce((acc, item) => {
+    if (!acc[item.order_id]) {
+      acc[item.order_id] = [];
+    }
+
+    acc[item.order_id].push(item);
+    return acc;
+  }, {});
+
+  return orders.map((order) => ({
+    ...order,
+    items: itemsByOrderId[order.id] || [],
+  }));
+>>>>>>> db458ee360e835ecc2d996cae76eba89ec3950ef
 };
 
 // BAGIAN INI YANG DIUBAH AGAR MENGAMBIL DATA ALAMAT & CUSTOMER NAME

@@ -2,59 +2,29 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function DetailNotaPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id;
-  
-  const [nota, setNota] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDetailOrder = async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/api/orders/${id}`);
-        const data = await res.json();
-        
-        if (res.ok && data.success !== false) {
-          setNota(data.data || data); 
-        } else {
-          alert("Gagal memuat detail nota.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) fetchDetailOrder();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#0077B6]"></div>
-      </div>
-    );
-  }
-
-  if (!nota) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center text-black">
-        <p className="font-bold text-gray-400 mb-4">Nota tidak ditemukan.</p>
-        <button onClick={() => router.back()} className="text-blue-600 text-sm font-black underline">Kembali</button>
-      </div>
-    );
-  }
-
-  // Hitung subtotal dan ongkir dengan aman (menggunakan nota.total dari backend)
-  const calculatedSubtotal = nota.items.reduce((sum: number, item: any) => sum + (item.qty * item.harga), 0);
-  const ongkir = nota.total - calculatedSubtotal;
-  
-  // Tanggal langsung ambil dari backend yang sudah diformat
-  const formattedDate = nota.date;
+  // Data Dummy Nota (Nanti ditarik pake API berdasarkan ID)
+  const nota = {
+    id: id,
+    tanggal: "28 April 2026",
+    status: "Selesai",
+    penerima: "Zhawa Kamela",
+    alamat: "Jl. Kalibata City No. 10, Jakarta Selatan",
+    metodeBayar: "QRIS / ShopeePay",
+    items: [
+      { nama: "Nugget Ayam Crispy 500gr", qty: 2, harga: 45000 },
+      { nama: "Sosis Sapi Bakar Jumbo", qty: 1, harga: 52000 },
+    ],
+    subtotal: 142000,
+    ongkir: 15000,
+    total: 157000
+  };
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] py-12 px-4 text-black">
@@ -80,9 +50,9 @@ export default function DetailNotaPage() {
             </div>
             <div className="text-right">
                <span className="bg-green-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
-                  {nota.status}
+                  {formatStatus(nota.status)}
                </span>
-               <p className="text-[10px] font-bold mt-2 text-gray-400">{formattedDate}</p>
+               <p className="text-[10px] font-bold mt-2 text-gray-400">{nota.tanggal}</p>
             </div>
           </div>
 
@@ -91,29 +61,34 @@ export default function DetailNotaPage() {
             <div className="grid grid-cols-2 gap-8 mb-10 pb-10 border-b border-dashed border-gray-200">
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Penerima</p>
-                <p className="text-sm font-black text-black">{nota.customer_name || nota.user_email}</p>
-                <p className="text-[11px] font-bold text-gray-500 mt-1">{nota.customer_phone || "-"}</p>
-                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{nota.shipping_address || "Tidak ada alamat"}</p>
-                {nota.notes && <p className="text-[10px] text-orange-500 mt-2 font-bold bg-orange-50 p-2 rounded-md">Catatan: {nota.notes}</p>}
+                <p className="text-sm font-black text-black">{nota.penerima}</p>
+                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{nota.alamat}</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">ID Transaksi</p>
                 <p className="text-sm font-black text-[#0077B6]">{nota.id}</p>
                 <p className="text-[10px] font-bold mt-4 text-gray-400 uppercase">Pembayaran</p>
-                <p className="text-[11px] font-black text-gray-900">{nota.payment_method}</p>
+                <p className="text-[11px] font-black text-gray-900">{nota.metodeBayar}</p>
               </div>
             </div>
+
+            {nota.notes && (
+              <div className="mb-8 p-4 rounded-2xl bg-[#F8FAFC] border border-gray-100">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Catatan</p>
+                <p className="text-sm text-gray-700 font-medium">{nota.notes}</p>
+              </div>
+            )}
 
             {/* List Item */}
             <div className="space-y-6 mb-10">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rincian Produk</p>
-              {nota.items.map((item: any, index: number) => (
+              {nota.items.map((item, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{item.nama}</p>
-                    <p className="text-[10px] text-gray-400 font-bold">{item.qty} x Rp {item.harga.toLocaleString()}</p>
+                    <p className="text-sm font-bold text-gray-800">{item.product_name}</p>
+                    <p className="text-[10px] text-gray-400 font-bold">{item.quantity} x Rp {item.unit_price.toLocaleString('id-ID')}</p>
                   </div>
-                  <p className="text-sm font-black text-black">Rp {(item.subtotal).toLocaleString()}</p>
+                  <p className="text-sm font-black text-black">Rp {(item.qty * item.harga).toLocaleString()}</p>
                 </div>
               ))}
             </div>
@@ -121,16 +96,16 @@ export default function DetailNotaPage() {
             {/* Totalan */}
             <div className="bg-[#F8FAFC] p-8 rounded-[30px] space-y-3">
               <div className="flex justify-between text-xs font-bold text-gray-500">
-                <span>Subtotal Produk</span>
-                <span>Rp {calculatedSubtotal.toLocaleString()}</span>
+                <span>Subtotal</span>
+                <span>Rp {nota.subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-xs font-bold text-gray-500">
-                <span>Biaya Lainnya / Ongkir</span>
-                <span>Rp {ongkir > 0 ? ongkir.toLocaleString() : "0"}</span>
+                <span>Biaya Pengiriman</span>
+                <span>Rp {nota.ongkir.toLocaleString()}</span>
               </div>
               <div className="flex justify-between pt-4 border-t border-gray-200">
                 <span className="text-sm font-black uppercase">Total Bayar</span>
-                <span className="text-xl font-black text-[#0077B6]">Rp {nota.total.toLocaleString()}</span>
+                <span className="text-xl font-black text-[#0077B6]">Rp {nota.total_amount.toLocaleString('id-ID')}</span>
               </div>
             </div>
 

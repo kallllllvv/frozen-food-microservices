@@ -224,31 +224,22 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link href="/checkout" className="block mt-6">
+              <div className="block mt-6">
                 <button
-                    onClick={() => {
-                      // Simpan total harga yang dipilih ke localStorage agar bisa ditarik di halaman Checkout
-                      localStorage.setItem("checkout_total", subtotal.toString());
-                      router.push("/checkout");
-                    }}
-                    disabled={selectedItems.length === 0}
-                    className="w-full h-12 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md shadow-blue-200 flex items-center justify-center"
-                  >
-                    Beli ({selectedItems.length})
-                  </button>
+                  onClick={() => router.push("/checkout")}
+                  disabled={selectedItems.length === 0}
+                  className="w-full h-12 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md shadow-blue-200 flex items-center justify-center"
+                >
+                  Beli ({selectedItems.length})
+                </button>
 
-                  {selectedItems.length === 0 && cartItems.length > 0 && (
-                    <p className="text-xs text-red-500 font-medium mt-4 text-center">
-                        *Pilih minimal 1 barang untuk checkout.
-                    </p>
-                  )}
-              </Link>
+                {selectedItems.length === 0 && cartItems.length > 0 && (
+                  <p className="text-xs text-red-500 font-medium mt-4 text-center">
+                    *Pilih minimal 1 barang untuk checkout.
+                  </p>
+                )}
+              </div>
               
-              {selectedItems.length === 0 && cartItems.length > 0 && (
-                <p className="text-xs text-red-500 font-medium mt-4 text-center">
-                  *Pilih minimal 1 barang untuk checkout.
-                </p>
-              )}
             </div>
           </div>
 
