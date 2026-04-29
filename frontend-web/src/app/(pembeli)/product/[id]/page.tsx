@@ -1,96 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-
-// DATA LENGKAP: Sama dengan Homepage
-const products = [
-  { 
-    id: 1, 
-    name: "Nugget Ayam Crispy 500gr", 
-    category: "Ayam",
-    priceText: "Rp 45.000", 
-    priceNum: 45000,
-    stock: 4, 
-    sold: 124,
-    rating: 4.8,
-    reviews: 32,
-    image: "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=800&auto=format&fit=crop", 
-    description: "Nugget ayam pilihan dengan balutan tepung roti yang ekstra renyah. Cocok untuk bekal anak sekolah atau camilan keluarga. Tanpa bahan pengawet buatan.",
-    tag: "Best Seller" 
-  },
-  { 
-    id: 2, 
-    name: "Sosis Sapi Bakar Jumbo", 
-    category: "Daging",
-    priceText: "Rp 52.000", 
-    priceNum: 52000,
-    stock: 25, 
-    sold: 89,
-    rating: 4.9,
-    reviews: 45,
-    image: "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=800&auto=format&fit=crop", 
-    description: "Sosis sapi premium dengan bumbu rempah yang meresap. Tekstur kenyal dan sangat nikmat jika dibakar atau digoreng. Isi 6 pcs per kemasan.",
-    tag: "Diskon" 
-  },
-  { 
-    id: 3, 
-    name: "Kentang Goreng Shoestring 1kg", 
-    category: "Camilan",
-    priceText: "Rp 32.000", 
-    priceNum: 32000,
-    stock: 8, 
-    sold: 200,
-    rating: 4.7,
-    reviews: 60,
-    image: "https://images.unsplash.com/photo-1630384066202-18d038253a1d?q=80&w=800&auto=format&fit=crop", 
-    description: "Kentang potong beku kualitas restoran (Shoestring cut). Renyah di luar dan lembut di dalam. Sangat praktis untuk teman nonton film.",
-    tag: "" 
-  },
-  { 
-    id: 4, 
-    name: "Bakso Sapi Asli Isi 50", 
-    category: "Daging",
-    priceText: "Rp 60.000", 
-    priceNum: 60000,
-    stock: 12, 
-    sold: 150,
-    rating: 4.9,
-    reviews: 78,
-    image: "https://images.unsplash.com/photo-1529006557810-264b5ca99197?q=80&w=800&auto=format&fit=crop", 
-    description: "Bakso sapi asli tanpa bahan pengenyal buatan. Rasa daging sapinya sangat terasa. Cocok untuk campuran kuah kaldu atau dibakar.",
-    tag: "Baru" 
-  },
-  { 
-    id: 5, 
-    name: "Dimsum Ayam Mix Isi 15", 
-    category: "Camilan",
-    priceText: "Rp 40.000", 
-    priceNum: 40000,
-    stock: 3, 
-    sold: 56,
-    rating: 4.6,
-    reviews: 12,
-    image: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?q=80&w=800&auto=format&fit=crop", 
-    description: "Aneka dimsum ayam dengan berbagai topping menarik (jamur, wortel, kepiting). Tinggal kukus 10 menit dan siap dihidangkan.",
-    tag: "" 
-  },
-  { 
-    id: 6, 
-    name: "Ikan Dory Fillet 1kg", 
-    category: "Seafood",
-    priceText: "Rp 55.000", 
-    priceNum: 55000,
-    stock: 15, 
-    sold: 42,
-    rating: 4.8,
-    reviews: 10,
-    image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?q=80&w=800&auto=format&fit=crop", 
-    description: "Daging ikan dory fillet yang sudah bersih tanpa duri. Sangat praktis untuk dimasak dory crispy asam manis atau di-pan seared.",
-    tag: "Frozen" 
-  },
-];
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -101,12 +12,32 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mencari produk berdasarkan ID dari URL
-    const foundProduct = products.find(p => p.id === Number(params.id));
-    if (foundProduct) {
-      setProduct(foundProduct);
+    const fetchProductFromDB = async () => {
+      try {
+        // PENTING: Sesuaikan URL ini dengan endpoint API backend kamu
+        // Misalnya backend berjalan di port 5000 dengan route /api/products
+        const response = await fetch(`http://localhost:5000/api/products/${params.id}`);
+        const data = await response.json();
+
+        // Asumsi backend me-return data di dalam object (misal: data.data) atau langsung objeknya
+        const productData = data.data || data;
+
+        if (response.ok && productData && productData.id) {
+          setProduct(productData);
+        } else {
+          setProduct(null);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data dari database:", error);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchProductFromDB();
     }
-    setLoading(false);
   }, [params.id]);
 
   const handleAddToCart = () => {
@@ -121,7 +52,7 @@ export default function ProductDetailPage() {
         id: product.id,
         name: product.name,
         category: product.category,
-        price: product.priceNum,
+        price: product.price, // Mengambil langsung dari DB
         image: product.image,
         quantity: quantity,
         selected: true
@@ -137,8 +68,34 @@ export default function ProductDetailPage() {
     }, 300);
   };
 
-  if (loading) return null; // Layar kosong saat loading
-  if (!product) return <div className="p-20 text-center font-bold text-gray-500">Memuat produk...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center font-bold text-gray-500 animate-pulse">Memuat data dari database...</div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <h1 className="text-2xl font-bold text-red-500 mb-2">Produk Tidak Ditemukan</h1>
+        <p className="text-gray-500 mb-6 text-center">Maaf, produk dengan ID {params.id} tidak ada di database.</p>
+        <button 
+          onClick={() => router.back()} 
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+        >
+          Kembali
+        </button>
+      </div>
+    );
+  }
+
+  // Fallback data jika kolom tidak ada di database
+  const displayRating = product.rating || 4.8;
+  const displayReviews = product.reviews || Math.floor(Math.random() * 50) + 10;
+  const displaySold = product.sold || Math.floor(Math.random() * 100) + 20;
+  const displayDesc = product.description || "Produk frozen food berkualitas dengan bahan pilihan terbaik. Sangat praktis untuk disajikan kapan saja.";
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
@@ -192,11 +149,11 @@ export default function ProductDetailPage() {
                  </span>
                  <div className="flex items-center text-sm text-gray-500 font-medium">
                    <span className="text-yellow-400 mr-1 text-base">★</span>
-                   <span className="text-gray-900 font-bold">{product.rating}</span>
+                   <span className="text-gray-900 font-bold">{displayRating}</span>
                    <span className="mx-2">•</span>
-                   <span>{product.reviews} Ulasan</span>
+                   <span>{displayReviews} Ulasan</span>
                    <span className="mx-2">•</span>
-                   <span>{product.sold} Terjual</span>
+                   <span>{displaySold} Terjual</span>
                  </div>
               </div>
 
@@ -205,13 +162,13 @@ export default function ProductDetailPage() {
               </h1>
               
               <p className="text-3xl font-extrabold text-blue-600 mb-6">
-                {product.priceText}
+                Rp {Number(product.price).toLocaleString('id-ID')}
               </p>
 
               <div className="mb-8">
                 <h3 className="text-sm font-bold text-gray-900 mb-2">Deskripsi Produk</h3>
                 <p className="text-gray-600 leading-relaxed text-sm">
-                  {product.description}
+                  {displayDesc}
                 </p>
               </div>
 

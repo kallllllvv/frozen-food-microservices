@@ -19,15 +19,22 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    // Ambil total dari localStorage
-    const savedTotal = localStorage.getItem("checkout_total");
-    if (savedTotal) setTotal(savedTotal);
-
-    // Ambil nama dari data user login untuk default input
+    // 1. Ambil nama dari data user login untuk default input
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
       setFormData(prev => ({ ...prev, customerName: user.name || "" }));
+    }
+
+    // 2. PERBAIKAN: Hitung total tagihan langsung dari keranjang yang dipilih
+    const cartStr = localStorage.getItem("cart");
+    if (cartStr) {
+      const cartItems = JSON.parse(cartStr);
+      const calculatedTotal = cartItems
+        .filter((item: any) => item.selected) // Hanya hitung yang di-ceklis
+        .reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+      
+      setTotal(calculatedTotal.toString());
     }
   }, []);
 
@@ -92,6 +99,8 @@ export default function CheckoutPage() {
         // Hapus item yang dibeli dari keranjang
         const sisaKeranjang = JSON.parse(cartStr).filter((item: any) => !item.selected);
         localStorage.setItem("cart", JSON.stringify(sisaKeranjang));
+        
+        // Hapus checkout_total jika masih ada sisa-sisa di localstorage
         localStorage.removeItem("checkout_total");
 
         alert(`Pembayaran Berhasil via ${selectedMethod}! Pesanan sedang diproses.`);
@@ -187,9 +196,9 @@ export default function CheckoutPage() {
           <div className="space-y-4">
             <button 
               onClick={handleBayar}
-              disabled={isProcessing}
+              disabled={isProcessing || parseInt(total) === 0}
               className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
-                isProcessing 
+                isProcessing || parseInt(total) === 0
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
                 : "bg-blue-600 text-white hover:bg-black shadow-xl shadow-blue-100 active:scale-95"
               }`}
