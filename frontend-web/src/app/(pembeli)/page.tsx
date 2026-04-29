@@ -7,7 +7,8 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
-  const [banner, setBanner] = useState<any>(null);
+  const [bannerSlides, setBannerSlides] = useState<any[]>([]);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // State untuk Data Produk dari API Backend
   const [products, setProducts] = useState<any[]>([]);
@@ -19,6 +20,58 @@ export default function HomePage() {
   const [priceFilter, setPriceFilter] = useState("all");
   const [sortOption, setSortOption] = useState("default");
   const [searchQuery, setSearchQuery] = useState("");
+  const [brandFilter, setBrandFilter] = useState("all");
+
+  const foodFallbackImage = "https://images.unsplash.com/photo-1547592180-3f4f7f42b2a1?q=80&w=1200&auto=format&fit=crop";
+  const productFallbackImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1200&auto=format&fit=crop";
+
+  const getCategoryBackgroundImage = (category: string) => {
+    const images: Record<string, string> = {
+      'Sosis': 'https://images.unsplash.com/photo-1551782450-17144efb5723?q=80&w=1200&auto=format&fit=crop',
+      'Nugget': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?q=80&w=1200&auto=format&fit=crop',
+      'Kentang': 'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?q=80&w=1200&auto=format&fit=crop',
+      'Fillet': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?q=80&w=1200&auto=format&fit=crop',
+      'Olahan Ikan': 'https://images.unsplash.com/photo-1559847844-5315695dadae?q=80&w=1200&auto=format&fit=crop',
+      'Daging': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?q=80&w=1200&auto=format&fit=crop',
+      'Ayam': 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop',
+      'Seafood': 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?q=80&w=1200&auto=format&fit=crop',
+      'Camilan': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop',
+    };
+    return images[category] || foodFallbackImage;
+  };
+
+  // Processed categories from products
+  const processedCategories = useMemo(() => {
+    const categoryMap = new Map();
+    products.forEach(product => {
+      const cat = product.category || 'Lainnya';
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, {
+          name: cat,
+          products: [],
+          latestProduct: null,
+          backgroundImage: getCategoryBackgroundImage(cat)
+        });
+      }
+      categoryMap.get(cat).products.push(product);
+      if (!categoryMap.get(cat).latestProduct || (product.created_at && categoryMap.get(cat).latestProduct.created_at && new Date(product.created_at) > new Date(categoryMap.get(cat).latestProduct.created_at))) {
+        categoryMap.get(cat).latestProduct = product;
+      }
+    });
+
+    return Array.from(categoryMap.values())
+      .sort((a, b) => {
+        if (!a.latestProduct || !b.latestProduct) return 0;
+        const aDate = a.latestProduct.created_at ? new Date(a.latestProduct.created_at) : new Date(a.latestProduct.id);
+        const bDate = b.latestProduct.created_at ? new Date(b.latestProduct.created_at) : new Date(b.latestProduct.id);
+        return bDate.getTime() - aDate.getTime();
+      });
+  }, [products]);
+
+  const brands = useMemo(() => {
+    const brandSet = new Set(products.map(p => p.brand).filter(Boolean));
+    return Array.from(brandSet);
+  }, [products]);
 
   useEffect(() => {
     setMounted(true);
@@ -71,15 +124,51 @@ export default function HomePage() {
         const response = await fetch("http://localhost:5000/api/banners/active");
         if (response.ok) {
           const data = await response.json();
-          setBanner(data.data?.[0] || null);
+          const firstBanner = data.data?.[0] || null;
+          const primarySlide = firstBanner || {
+            title: "Beli Banyak, Stok Aman!",
+            image_url: foodFallbackImage,
+            link_url: "",
+          };
+
+          setBannerSlides([
+            primarySlide,
+            {
+              title: "Promo Mingguan Frozen Food",
+              image_url: "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?q=80&w=1200&auto=format&fit=crop",
+              link_url: "promo",
+            },
+            {
+              title: "Menu Favorit Keluarga",
+              image_url: "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1200&auto=format&fit=crop",
+              link_url: "favorite",
+            },
+            {
+              title: "Siap Masak Kapan Saja",
+              image_url: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=1200&auto=format&fit=crop",
+              link_url: "ready-to-cook",
+            },
+          ]);
         }
       } catch (error) {
         console.error("Gagal mengambil banner:", error);
+      } finally {
+        setActiveBannerIndex(0);
       }
     };
 
     fetchBanner();
   }, []);
+
+  useEffect(() => {
+    if (!bannerSlides.length) return;
+
+    const interval = window.setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % bannerSlides.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [bannerSlides.length]);
 
   // Fungsi utilitas untuk format harga angka (misal: 45000) menjadi "Rp 45.000"
   const formatRupiah = (angka: number) => {
@@ -92,10 +181,7 @@ export default function HomePage() {
 
   const categories = [
     { name: "Semua", icon: "🍱" },
-    { name: "Ayam", icon: "🍗" },
-    { name: "Daging", icon: "🥩" },
-    { name: "Seafood", icon: "🐟" },
-    { name: "Camilan", icon: "🍟" },
+    ...processedCategories.slice(0, 8).map(cat => ({ name: cat.name, icon: "🍽️" }))
   ];
 
   // Logika Filtering (dijalankan pada data 'products' yang sudah di-fetch)
@@ -107,9 +193,11 @@ export default function HomePage() {
     if (priceFilter === "under50") matchPrice = priceNum < 50000;
     else if (priceFilter === "above50") matchPrice = priceNum >= 50000;
 
+    const matchBrand = brandFilter === "all" || product.brand === brandFilter;
+
     const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchCategory && matchPrice && matchSearch;
+    return matchCategory && matchPrice && matchBrand && matchSearch;
   });
 
   // Apply sorting / special filters
@@ -132,6 +220,45 @@ export default function HomePage() {
         return arr;
     }
   }, [filteredProducts, sortOption]);
+
+  // Recommendation and curated lists
+  const recommendedProducts = useMemo(() => {
+    const scored = products.map((p) => ({
+      ...p,
+      score: (Number(p.reviews || 0) * 2) + Number(p.sold || 0) / 2,
+    }));
+    return scored.sort((a, b) => b.score - a.score).slice(0, 8);
+  }, [products]);
+
+  const trendingProducts = useMemo(() => {
+    return [...products].sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 8);
+  }, [products]);
+
+  const promoProducts = useMemo(() => {
+    return products.filter(p => (p.tag && String(p.tag).toLowerCase().includes('promo')) || Number(p.price) < 30000).slice(0, 8);
+  }, [products]);
+
+  const topRatedProducts = useMemo(() => {
+    return [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0)).slice(0, 8);
+  }, [products]);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const searchSpotlightProducts = useMemo(() => {
+    if (!normalizedSearch) return [];
+
+    return [...products]
+      .filter((product) => product.name.toLowerCase().includes(normalizedSearch) || String(product.category || "").toLowerCase().includes(normalizedSearch) || String(product.tag || "").toLowerCase().includes(normalizedSearch))
+      .sort((a, b) => {
+        const aExact = a.name.toLowerCase().startsWith(normalizedSearch) ? 1 : 0;
+        const bExact = b.name.toLowerCase().startsWith(normalizedSearch) ? 1 : 0;
+        if (bExact !== aExact) return bExact - aExact;
+        return (b.sold || 0) - (a.sold || 0);
+      })
+      .slice(0, 6);
+  }, [normalizedSearch, products]);
+
+  const highlightMatches = (text?: string) => Boolean(normalizedSearch && text && text.toLowerCase().includes(normalizedSearch));
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -250,42 +377,10 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        {/* HERO BANNER */}
-        <section className="relative h-[250px] sm:h-[300px] rounded-[2rem] overflow-hidden mb-12 bg-gray-900 shadow-2xl">
-          <img
-            src={banner?.image_url || "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop"}
-            className="object-cover w-full h-full brightness-50 absolute"
-            alt={banner?.title || "Banner"}
-          />
-          <div className="relative z-10 h-full flex flex-col justify-center px-10 text-white">
-            <h2 className="text-3xl sm:text-5xl font-black mb-2 uppercase tracking-tighter">
-              {banner?.title || <>Beli Banyak, <br/> Stok Aman!</>}
-            </h2>
-            <p className="text-blue-100 font-medium">
-              {banner?.link_url ? "Klik banner untuk detail promo." : "Gratis ongkir khusus wilayah Jabodetabek."}
-            </p>
-          </div>
-        </section>
-
-        {/* --- FILTER & SEARCH SECTION --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 bg-white sticky top-16 z-40 py-2">
-          {/* Kategori */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
-            {categories.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-bold transition-all whitespace-nowrap ${
-                  activeCategory === cat.name ? "bg-gray-900 border-gray-900 text-white shadow-lg" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"
-                }`}
-              >
-                <span>{cat.icon}</span>{cat.name}
-              </button>
-            ))}
-          </div>
-
+        {/* --- SEARCH & FILTER SECTION --- */}
+        <div className="flex flex-col gap-4 mb-6 bg-white py-2">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -324,15 +419,268 @@ export default function HomePage() {
                 <option value="trending">Trending (Terlaris)</option>
                 <option value="promo">Promo / Harga Murah</option>
               </select>
+              <select
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                className="w-full sm:w-auto bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer"
+              >
+                <option value="all">Semua Brand</option>
+                {brands.map(brand => (
+                  <option key={brand} value={brand}>{brand}</option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() => setActiveCategory(cat.name)}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-bold transition-all whitespace-nowrap ${
+                  activeCategory === cat.name ? "bg-gray-900 border-gray-900 text-white shadow-lg" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"
+                }`}
+              >
+                <span>{cat.icon}</span>{cat.name}
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* --- SEARCH SPOTLIGHT --- */}
+        {normalizedSearch && searchSpotlightProducts.length > 0 && (
+          <section className="mb-8 rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-cyan-50 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-amber-600 font-black mb-2">Search Spotlight</p>
+                <h3 className="text-xl font-black text-gray-900">Barang yang paling cocok dengan pencarianmu</h3>
+              </div>
+              <div className="flex items-center gap-2 text-amber-700 font-black text-xs uppercase tracking-widest">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-white shadow-md">★</span>
+                Live highlight
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
+              {searchSpotlightProducts.map((p) => (
+                <Link key={`search-${p.id}`} href={`/product/${p.id}`} className={`min-w-[220px] snap-start rounded-2xl border p-3 bg-white transition-all duration-300 ${highlightMatches(p.name) ? 'border-amber-400 ring-2 ring-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200 hover:border-blue-300'}`}>
+                  <div className="relative aspect-square mb-3 overflow-hidden rounded-xl">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    <div className="absolute top-2 left-2 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok</div>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span>{p.category}</span>
+                    <span className="text-blue-600">{formatRupiah(Number(p.price))}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* --- CAROUSEL BANNER --- */}
+        <section className="mb-8 rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-gray-900 shadow-2xl min-h-[260px] sm:min-h-[320px]">
+            {bannerSlides.length > 0 && bannerSlides.map((slide, index) => {
+              const isActive = index === activeBannerIndex;
+              return (
+                <div
+                  key={`${slide.title}-${index}`}
+                  className={`absolute inset-0 transition-all duration-500 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}
+                >
+                  <img
+                    src={slide.image_url || foodFallbackImage}
+                    className="object-cover w-full h-full brightness-50 absolute"
+                    alt={slide.title}
+                    onError={(e) => (e.currentTarget.src = foodFallbackImage)}
+                  />
+                  <div className="relative z-10 h-[260px] sm:h-[320px] flex flex-col justify-center px-8 sm:px-10 text-white">
+                    <h2 className="text-3xl sm:text-5xl font-black mb-3 uppercase tracking-tighter max-w-2xl">
+                      {slide.title}
+                    </h2>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex flex-wrap gap-2 justify-center">
+              {bannerSlides.map((slide, index) => (
+                <button
+                  key={`banner-dot-${index}`}
+                  onClick={() => setActiveBannerIndex(index)}
+                  className={`rounded-full w-3 h-3 transition-all ${index === activeBannerIndex ? 'bg-white shadow-lg scale-125' : 'bg-white/40 hover:bg-white/60'}`}
+                  aria-label={`Banner ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --- REKOMENDASI (di bawah banner) --- */}
+        {recommendedProducts.length > 0 && (
+          <section className="mb-8 rounded-[2rem] border border-cyan-100 bg-gradient-to-r from-white via-cyan-50/50 to-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-600 font-black mb-2">Rekomendasi</p>
+                <h3 className="text-xl font-black text-gray-900">Untuk Anda</h3>
+              </div>
+              <div className="flex items-center gap-2 text-cyan-700 font-black text-xs uppercase tracking-widest">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500 text-white shadow-md">✦</span>
+                Highlight utama
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
+              {recommendedProducts.map((p) => (
+                <Link key={p.id} href={`/product/${p.id}`} className={`group min-w-[230px] snap-start rounded-[1.5rem] border bg-white p-3 shadow-sm transition-all ${highlightMatches(p.name) ? 'border-cyan-300 ring-2 ring-cyan-100' : 'border-gray-200 hover:border-cyan-300'}`}>
+                  <div className="relative aspect-[4/3] mb-3 overflow-hidden rounded-2xl">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
+                      <span className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-black uppercase text-cyan-700 shadow-sm">Rekomendasi</span>
+                      {p.tag && <span className="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-black uppercase text-white shadow-sm">{p.tag}</span>}
+                    </div>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="text-blue-600">{formatRupiah(Number(p.price))}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+
+
         {/* PRODUCT GRID */}
+        {/* --- CURATED SECTIONS: Trending / Promo / Top Rating --- */}
+        <section className="grid gap-6 mb-8 lg:grid-cols-3">
+          <div className="rounded-[1.75rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-emerald-600 font-black mb-1">Trending</p>
+                <h4 className="font-black text-lg text-gray-900 flex items-center gap-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-lime-500 text-white shadow-md">↗</span> Lagi Naik</h4>
+              </div>
+              <span className="rounded-full bg-lime-500 px-3 py-1 text-[10px] font-black uppercase text-white shadow-sm">Hot</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
+              {trendingProducts.map((p) => (
+                <Link key={`trend-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-lime-300 ring-2 ring-lime-100' : 'border-gray-200 hover:border-lime-300'}`}>
+                  <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    <span className="absolute top-2 left-2 rounded-full bg-lime-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Trending</span>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span>Terjual {p.sold || 0}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-amber-50 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-rose-600 font-black mb-1">Promo</p>
+                <h4 className="font-black text-lg text-gray-900 flex items-center gap-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">%</span> Harga Ramah</h4>
+              </div>
+              <span className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-black uppercase text-white shadow-sm">Deal</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
+              {promoProducts.map((p) => (
+                <Link key={`promo-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-gray-200 hover:border-emerald-300'}`}>
+                  <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    <span className="absolute top-2 left-2 rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Promo</span>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="line-through text-gray-400">{formatRupiah(Number(p.price) + 10000)}</span>
+                  </div>
+                  <div className="mt-1 text-sm font-black text-rose-600">{formatRupiah(Number(p.price))}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-cyan-50 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-amber-600 font-black mb-1">Top Rating</p>
+                <h4 className="font-black text-lg text-gray-900 flex items-center gap-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white shadow-md">★</span> Paling Disukai</h4>
+              </div>
+              <span className="rounded-full bg-amber-500 px-3 py-1 text-[10px] font-black uppercase text-white shadow-sm">Best</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
+              {topRatedProducts.map((p) => (
+                <Link key={`top-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200 hover:border-amber-300'}`}>
+                  <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    <span className="absolute top-2 left-2 rounded-full bg-amber-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Top</span>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span>{formatRupiah(Number(p.price))}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+        {/* --- KATEGORI FROZEN FOOD --- */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-gray-500 font-black">Kategori Frozen Food</p>
+              <h2 className="text-2xl font-black text-gray-900">Pilih Kategori Favoritmu</h2>
+            </div>
+            <p className="text-sm text-gray-500">Diurutkan berdasarkan produk terbaru</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {processedCategories.map((category) => (
+              <button
+                key={category.name}
+                onClick={() => setActiveCategory(category.name)}
+                className={`group relative rounded-2xl overflow-hidden aspect-[4/3] transition-all duration-300 ${
+                  activeCategory === category.name
+                    ? 'ring-2 ring-blue-500 shadow-xl scale-105'
+                    : 'hover:scale-105 hover:shadow-lg'
+                }`}
+              >
+                <img
+                  src={category.backgroundImage}
+                  alt={category.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  onError={(e) => (e.currentTarget.src = foodFallbackImage)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-white font-black text-lg mb-1">{category.name}</h3>
+                  <p className="text-white/80 text-sm">{category.products.length} produk tersedia</p>
+                </div>
+                {activeCategory === category.name && (
+                  <div className="absolute top-4 right-4">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* --- LIST PRODUK BERDASARKAN KATEGORI --- */}
         <section>
           <div className="flex items-center justify-between mb-8">
              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">
-               List Produk ({sortedProducts.length})
+               {activeCategory === "Semua" ? "Semua Produk" : `Produk ${activeCategory}`} ({sortedProducts.length})
              </h3>
           </div>
 
@@ -342,16 +690,21 @@ export default function HomePage() {
                <p className="mt-4 text-gray-500 font-medium">Memuat produk...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {sortedProducts.map((product) => (
-                <div key={product.id} className="group bg-white rounded-3xl border border-gray-100 hover:shadow-2xl hover:shadow-blue-50 transition-all duration-300 overflow-hidden flex flex-col">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {sortedProducts.map((product) => {
+                const isHighlighted = highlightMatches(product.name) || highlightMatches(product.category) || highlightMatches(product.tag);
+                return (
+                <div key={product.id} className={`group bg-white rounded-[1.75rem] border transition-all duration-300 overflow-hidden flex flex-col ${isHighlighted ? 'border-amber-400 ring-2 ring-amber-100 shadow-xl shadow-amber-50' : 'border-gray-100 hover:shadow-2xl hover:shadow-blue-50'}`}>
                   <Link href={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
                     {product.tag && (
-                      <span className="absolute top-3 left-3 z-10 bg-blue-600 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase italic shadow-md">
+                      <span className={`absolute top-3 left-3 z-10 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase italic shadow-md ${product.tag.toLowerCase().includes('promo') ? 'bg-emerald-500' : 'bg-blue-600'}`}>
                         {product.tag}
                       </span>
                     )}
-                    <img src={product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" />
+                    <img src={product.image || productFallbackImage} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
+                    {isHighlighted && (
+                      <span className="absolute bottom-3 left-3 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok Dicari</span>
+                    )}
                   </Link>
 
                   <div className="p-5 flex-1 flex flex-col">
@@ -360,23 +713,28 @@ export default function HomePage() {
                         {product.name}
                       </h4>
                     </Link>
+                    <div className="flex items-center gap-2 mb-2 text-[10px] font-black uppercase tracking-widest">
+                      <span className="inline-flex items-center gap-1 text-amber-600">★ {product.reviews || 0}</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-emerald-600">Terjual {product.sold || 0}</span>
+                    </div>
                     <p className="text-base font-black text-gray-900 mb-3">
                       {formatRupiah(product.price)}
                     </p>
                     <div className="mb-4 flex items-center gap-1.5 mt-auto">
                       <div className={`h-1.5 w-1.5 rounded-full ${product.stock <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
                       <p className={`text-[10px] font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-green-600'}`}>
-                        Stok: {product.stock} {product.stock <= 5 ? '(Menipis!)' : '(Aman)'}
+                        Stok: {product.stock}
                       </p>
                     </div>
                     <Link href={`/product/${product.id}`} className="block w-full">
-                       <button className="w-full py-2.5 bg-gray-50 text-gray-700 text-xs font-black rounded-2xl hover:bg-gray-900 hover:text-white transition-all uppercase tracking-widest cursor-pointer">
+                       <button className={`w-full py-2.5 text-xs font-black rounded-2xl transition-all uppercase tracking-widest cursor-pointer ${isHighlighted ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-gray-50 text-gray-700 hover:bg-gray-900 hover:text-white'}`}>
                          Lihat Detail
                        </button>
                     </Link>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           ) : (
             <div className="py-24 text-center border-2 border-dashed border-gray-100 rounded-3xl">

@@ -28,6 +28,8 @@ export default function DetailNotaPage() {
   const [nota, setNota] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   // Mengambil data dari Backend saat halaman pertama kali dibuka
   useEffect(() => {
@@ -56,6 +58,34 @@ export default function DetailNotaPage() {
       fetchDetailNota();
     }
   }, [id]);
+
+  const handleConfirmReceived = async () => {
+    setConfirming(true);
+    setConfirmMessage("");
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders/${id}/confirm`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Selesai" }),
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNota(data);
+        setConfirmMessage("✓ Pesanan berhasil dikonfirmasi diterima!");
+        setTimeout(() => {
+          router.push("/history");
+        }, 2000);
+      } else {
+        setConfirmMessage(data.message || "Gagal mengkonfirmasi pesanan");
+      }
+    } catch (err) {
+      console.error("Gagal confirm:", err);
+      setConfirmMessage("Terjadi kesalahan pada server. Coba lagi nanti.");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   // Tampilan saat data masih dimuat (Loading)
   if (loading) {
@@ -87,14 +117,33 @@ export default function DetailNotaPage() {
       <div className="max-w-2xl mx-auto">
         
         {/* Header Nota */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
           <button onClick={() => router.back()} className="text-sm font-black text-gray-400 hover:text-black">
             ← KEMBALI
           </button>
-          <button onClick={() => window.print()} className="bg-white border border-gray-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors">
-            CETAK NOTA
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => window.print()} className="bg-white border border-gray-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors">
+              CETAK NOTA
+            </button>
+            {nota?.status?.toLowerCase() === 'dikirim' && (
+              <button 
+                onClick={handleConfirmReceived} 
+                disabled={confirming}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+              >
+                {confirming ? "Konfirmasi..." : "✓ Barang Diterima"}
+              </button>
+            )}
+          </div>
         </div>
+
+        {confirmMessage && (
+          <div className={`mb-4 p-3 rounded-xl text-xs font-bold ${
+            confirmMessage.includes('✓') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {confirmMessage}
+          </div>
+        )}
 
         {/* Kertas Nota */}
         <div className="bg-white rounded-[40px] shadow-2xl shadow-blue-100/50 overflow-hidden border border-gray-100">

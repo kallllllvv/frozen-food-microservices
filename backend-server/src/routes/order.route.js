@@ -5,6 +5,7 @@ const OrderController = require('../controllers/order.controller');
 // PENTING: /history/:email harus di atas /:id
 router.post('/', OrderController.createOrder); // atau '/create' tergantung setup-mu
 router.get('/history/:email', OrderController.getHistoryByEmail);
+router.put('/:id/confirm', OrderController.confirmOrderReceived); // Konfirmasi pesanan diterima
 router.get('/:id', OrderController.getOrderDetail);
 router.get('/', OrderController.getOrders); 
 

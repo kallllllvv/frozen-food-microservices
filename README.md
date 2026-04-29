@@ -79,6 +79,10 @@ Admin default yang dibuat otomatis saat backend start:
 - Password: `Admin123!`
 - Ditambahkan pada 29 April 2026 pukul 16:27
 
+User Login
+user@frozenshelly.com
+user123!
+
 Setelah login sebagai admin, frontend akan diarahkan ke dashboard admin di `/dashboard`.
 
 ### Fitur Admin Dashboard
@@ -144,3 +148,25 @@ Saat backend start:
 - bcryptjs
 - jsonwebtoken
 - Tailwind CSS
+
+## Recent Changes (29 April 2026)
+
+- Added a default test user account created on backend startup:
+  - Email: `user@frozenshelly.com`
+  - Password: `User123!`
+
+- Logout behavior for admin: logging out now redirects directly to the public homepage (`/`) instead of login.
+
+- Add-to-cart now requires an authenticated account. If a visitor tries to add an item without being logged in, a toast notification will prompt them to create an account and then redirect to `/auth/register`.
+
+- Product list: new sorting & filter options on the homepage:
+  - Termurah → Termahal, Termahal → Termurah
+  - Ulasan Terbaik / Ulasan Terburuk
+  - Trending (berdasarkan jumlah terjual)
+  - Promo / Harga Murah (client-side promo threshold currently < Rp 30.000 or `tag` containing "promo")
+
+- Product detail: stabilized `reviews` and `sold` fallback values and fixed React hook-order issues to prevent the "change in the order of Hooks" warning.
+
+- User-visible feedback: replaced browser `alert()` with top-right toast notifications across the site (product add, checkout validation, admin actions).
+
+If you want any of the above behavior changed (different promo threshold, persist to-server for reviews/sold, or show promo badges), tell me which option to implement next.

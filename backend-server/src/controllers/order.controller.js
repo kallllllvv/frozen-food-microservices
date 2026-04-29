@@ -70,9 +70,33 @@ const getHistoryByEmail = async (req, res) => {
   }
 };
 
+// 5. Konfirmasi pesanan diterima (User menerima barang)
+const confirmOrderReceived = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID order diperlukan.',
+      });
+    }
+
+    const updatedOrder = await OrderService.updateOrderStatus(id, status || 'Selesai');
+    res.status(200).json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrders,
   getOrderDetail,
-  getHistoryByEmail 
+  getHistoryByEmail,
+  confirmOrderReceived
 };

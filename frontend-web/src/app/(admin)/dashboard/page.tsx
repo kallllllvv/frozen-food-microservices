@@ -310,10 +310,125 @@ export default function AdminDashboardPage() {
 
 				<section className="grid xl:grid-cols-[1.4fr_1fr] gap-6">
 					<div className="rounded-[2rem] bg-white border border-gray-100 shadow-sm p-6">
+						<div className="flex items-end justify-between mb-8 gap-4">
+							<div>
+								<p className="text-xs uppercase tracking-[0.3em] text-blue-500 font-black mb-2">Grafik Kurva Keuangan</p>
+								<h3 className="text-2xl font-black">Trend Revenue & Profit</h3>
+							</div>
+						</div>
+
+						{loading ? (
+							<div className="py-20 text-center text-gray-400 font-medium">Memuat grafik...</div>
+						) : (stats?.monthlyFinance?.length || 0) > 0 ? (
+							<div className="relative h-[280px] bg-gradient-to-b from-blue-50 to-white rounded-2xl border border-gray-100 p-6">
+								<svg className="w-full h-full" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+									{/* Grid */}
+									{[0, 1, 2, 3, 4].map((i) => (
+										<line key={`grid-${i}`} x1="40" y1={50 + i * 50} x2="780" y2={50 + i * 50} stroke="#e5e7eb" strokeWidth="1" />
+									))}
+									<line x1="40" y1="30" x2="40" y2="210" stroke="#1f2937" strokeWidth="2" />
+									<line x1="40" y1="210" x2="780" y2="210" stroke="#1f2937" strokeWidth="2" />
+									
+									{/* Revenue Line (Blue) */}
+									<polyline
+										points={stats?.monthlyFinance?.map((d, i) => {
+											const x = 60 + (i * 720 / ((stats?.monthlyFinance?.length || 1) - 1 || 1));
+											const maxRev = Math.max(...(stats?.monthlyFinance?.map(e => e.revenue) || [1]));
+											const y = 210 - ((d.revenue / maxRev) * 170);
+											return `${x},${y}`;
+										}).join(' ')}
+										fill="none"
+										stroke="#0077B6"
+										strokeWidth="3"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+									
+									{/* Gross Profit Line (Amber) */}
+									<polyline
+										points={stats?.monthlyFinance?.map((d, i) => {
+											const x = 60 + (i * 720 / ((stats?.monthlyFinance?.length || 1) - 1 || 1));
+											const maxProfit = Math.max(...(stats?.monthlyFinance?.map(e => e.grossProfit) || [1]));
+											const y = 210 - ((d.grossProfit / maxProfit) * 170);
+											return `${x},${y}`;
+										}).join(' ')}
+										fill="none"
+										stroke="#f59e0b"
+										strokeWidth="3"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+									
+									{/* Net Profit Line (Green) */}
+									<polyline
+										points={stats?.monthlyFinance?.map((d, i) => {
+											const x = 60 + (i * 720 / ((stats?.monthlyFinance?.length || 1) - 1 || 1));
+											const maxNet = Math.max(...(stats?.monthlyFinance?.map(e => e.netProfit) || [1]));
+											const y = 210 - ((d.netProfit / maxNet) * 170);
+											return `${x},${y}`;
+										}).join(' ')}
+										fill="none"
+										stroke="#10b981"
+										strokeWidth="3"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+
+									{/* Data Points */}
+									{stats?.monthlyFinance?.map((d, i) => {
+										const x = 60 + (i * 720 / ((stats?.monthlyFinance?.length || 1) - 1 || 1));
+										const maxRev = Math.max(...(stats?.monthlyFinance?.map(e => e.revenue) || [1]));
+										const yRev = 210 - ((d.revenue / maxRev) * 170);
+										const maxProfit = Math.max(...(stats?.monthlyFinance?.map(e => e.grossProfit) || [1]));
+										const yGross = 210 - ((d.grossProfit / maxProfit) * 170);
+										const maxNet = Math.max(...(stats?.monthlyFinance?.map(e => e.netProfit) || [1]));
+										const yNet = 210 - ((d.netProfit / maxNet) * 170);
+										return (
+											<g key={`points-${i}`}>
+												<circle cx={x} cy={yRev} r="4" fill="#0077B6" />
+												<circle cx={x} cy={yGross} r="4" fill="#f59e0b" />
+												<circle cx={x} cy={yNet} r="4" fill="#10b981" />
+											</g>
+										);
+									})}
+
+									{/* Month Labels */}
+									{stats?.monthlyFinance?.map((d, i) => {
+										const x = 60 + (i * 720 / ((stats?.monthlyFinance?.length || 1) - 1 || 1));
+										return (
+											<text key={`label-${i}`} x={x} y="230" textAnchor="middle" fontSize="12" fill="#6b7280" className="font-bold">
+												{d.month.substring(0, 3)}
+											</text>
+										);
+									})}
+								</svg>
+								
+								{/* Legend */}
+								<div className="flex justify-center gap-6 mt-4 text-xs">
+									<div className="flex items-center gap-2">
+										<div className="w-3 h-3 rounded-full bg-blue-600" />
+										<span className="font-bold text-gray-600">Revenue</span>
+									</div>
+									<div className="flex items-center gap-2">
+										<div className="w-3 h-3 rounded-full bg-amber-500" />
+										<span className="font-bold text-gray-600">Gross Profit</span>
+									</div>
+									<div className="flex items-center gap-2">
+										<div className="w-3 h-3 rounded-full bg-emerald-500" />
+										<span className="font-bold text-gray-600">Net Profit</span>
+									</div>
+								</div>
+							</div>
+						) : (
+							<div className="py-20 text-center text-gray-400 font-medium">Belum ada data order untuk grafik.</div>
+						)}
+					</div>
+
+					<div className="rounded-[2rem] bg-white border border-gray-100 shadow-sm p-6">
 						<div className="flex items-end justify-between mb-6 gap-4">
 							<div>
-								<p className="text-xs uppercase tracking-[0.3em] text-blue-500 font-black mb-2">Grafik Keuangan</p>
-								<h3 className="text-2xl font-black">Revenue, Gross Profit, Net Profit</h3>
+								<p className="text-xs uppercase tracking-[0.3em] text-blue-500 font-black mb-2">Grafik Bar Bulanan</p>
+								<h3 className="text-2xl font-black">Detail Revenue & Profit</h3>
 							</div>
 							<div className="text-right text-xs text-gray-500">
 								<p>Gross = Revenue - HPP</p>
@@ -324,29 +439,34 @@ export default function AdminDashboardPage() {
 						{loading ? (
 							<div className="py-20 text-center text-gray-400 font-medium">Memuat grafik...</div>
 						) : (stats?.monthlyFinance?.length || 0) > 0 ? (
-							<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-								{stats?.monthlyFinance?.map((entry) => (
-									<div key={entry.month} className="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
-										<p className="font-black text-gray-800 mb-4">{entry.month}</p>
-										<div className="space-y-3">
-											{[
-												{ label: "Revenue", value: entry.revenue, color: "bg-blue-600" },
-												{ label: "Gross", value: entry.grossProfit, color: "bg-amber-500" },
-												{ label: "Net", value: entry.netProfit, color: "bg-emerald-500" },
-											].map((bar) => (
-												<div key={bar.label}>
-													<div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-gray-400 mb-1">
-														<span>{bar.label}</span>
-														<span>{money(bar.value)}</span>
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+								{stats?.monthlyFinance?.map((entry) => {
+									const maxFinanceValue = Math.max(
+										...(stats?.monthlyFinance?.map(e => Math.max(e.revenue, e.grossProfit, e.netProfit)) || [1])
+									);
+									return (
+										<div key={entry.month} className="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
+											<p className="font-black text-gray-800 mb-4 text-sm">{entry.month}</p>
+											<div className="space-y-3">
+												{[
+													{ label: "Revenue", value: entry.revenue, color: "bg-blue-600" },
+													{ label: "Gross", value: entry.grossProfit, color: "bg-amber-500" },
+													{ label: "Net", value: entry.netProfit, color: "bg-emerald-500" },
+												].map((bar) => (
+													<div key={bar.label}>
+														<div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+															<span>{bar.label}</span>
+															<span>{money(bar.value)}</span>
+														</div>
+														<div className="h-3 rounded-full bg-gray-200 overflow-hidden">
+															<div className={`${bar.color} h-full rounded-full`} style={{ width: `${Math.max(6, (bar.value / maxFinanceValue) * 100)}%` }} />
+														</div>
 													</div>
-													<div className="h-3 rounded-full bg-gray-200 overflow-hidden">
-														<div className={`${bar.color} h-full rounded-full`} style={{ width: `${Math.max(6, (bar.value / maxFinanceValue) * 100)}%` }} />
-													</div>
-												</div>
-											))}
+												))}
+											</div>
 										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						) : (
 							<div className="py-20 text-center text-gray-400 font-medium">Belum ada data order untuk grafik.</div>

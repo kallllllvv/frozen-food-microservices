@@ -112,9 +112,14 @@ const getOrderDetail = async (orderId) => {
   return await OrderModel.fetchOrderById(orderId);
 };
 
+const updateOrderStatus = async (orderId, newStatus) => {
+  return await OrderModel.updateOrderStatus(orderId, newStatus);
+};
+
 module.exports = {
   createOrder,
   listOrders,
   listOrdersByEmail,
   getOrderDetail,
+  updateOrderStatus,
 };

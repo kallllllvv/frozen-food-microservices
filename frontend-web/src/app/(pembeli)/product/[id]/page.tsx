@@ -7,6 +7,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<any>(null);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -15,21 +16,52 @@ export default function ProductDetailPage() {
     message: "",
   });
 
+  const fallbackProductImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1200&auto=format&fit=crop";
+
   // Stabilize fallback values with hooks called unconditionally
   const displayRating = useMemo(() => (product ? (product.rating ?? 4.8) : 4.8), [product?.id]);
   const displayReviews = useMemo(() => (product ? (product.reviews ?? (Math.floor(Math.random() * 50) + 10)) : 0), [product?.id]);
   const displaySold = useMemo(() => (product ? (product.sold ?? (Math.floor(Math.random() * 100) + 20)) : 0), [product?.id]);
   const displayDesc = useMemo(() => (product ? (product.description || "Produk frozen food berkualitas dengan bahan pilihan terbaik. Sangat praktis untuk disajikan kapan saja.") : ""), [product?.id]);
 
+  const similarProducts = useMemo(() => {
+    if (!product || allProducts.length === 0) return [];
+    return allProducts
+      .filter((item) => item.id !== product.id)
+      .filter((item) => item.category === product.category || item.tag === product.tag)
+      .slice(0, 5);
+  }, [product, allProducts]);
+
+  const ratingBreakdown = useMemo(() => {
+    const reviews = Math.max(displayReviews, 1);
+    const five = Math.max(1, Math.round(reviews * 0.45 + (displayRating - 4) * 3));
+    const four = Math.max(0, Math.round(reviews * 0.25));
+    const three = Math.max(0, Math.round(reviews * 0.15));
+    const two = Math.max(0, Math.round(reviews * 0.1));
+    const one = Math.max(0, reviews - five - four - three - two);
+
+    const total = five + four + three + two + one || 1;
+    return [
+      { star: 5, count: five, percent: Math.round((five / total) * 100) },
+      { star: 4, count: four, percent: Math.round((four / total) * 100) },
+      { star: 3, count: three, percent: Math.round((three / total) * 100) },
+      { star: 2, count: two, percent: Math.round((two / total) * 100) },
+      { star: 1, count: one, percent: Math.round((one / total) * 100) },
+    ];
+  }, [displayRating, displayReviews]);
+
+  const detailRatings = useMemo(() => [
+    { label: "Rasa", value: Math.min(5, Math.max(3.5, displayRating + 0.2)) },
+    { label: "Kualitas", value: Math.min(5, Math.max(3.5, displayRating)) },
+    { label: "Kemasan", value: Math.min(5, Math.max(3.5, displayRating - 0.1)) },
+  ], [displayRating]);
+
   useEffect(() => {
     const fetchProductFromDB = async () => {
       try {
-        // PENTING: Sesuaikan URL ini dengan endpoint API backend kamu
-        // Misalnya backend berjalan di port 5000 dengan route /api/products
         const response = await fetch(`http://localhost:5000/api/products/${params.id}`);
         const data = await response.json();
 
-        // Asumsi backend me-return data di dalam object (misal: data.data) atau langsung objeknya
         const productData = data.data || data;
 
         if (response.ok && productData && productData.id) {
@@ -49,6 +81,21 @@ export default function ProductDetailPage() {
       fetchProductFromDB();
     }
   }, [params.id]);
+
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/products");
+        const data = await response.json();
+        const products = data.data || data;
+        setAllProducts(Array.isArray(products) ? products : []);
+      } catch (error) {
+        console.error("Gagal mengambil daftar produk untuk similar:", error);
+      }
+    };
+
+    fetchAllProducts();
+  }, []);
 
   const handleAddToCart = () => {
     // Check if user is logged in
@@ -155,9 +202,10 @@ export default function ProductDetailPage() {
             <div className="w-full lg:w-1/2 p-6 lg:p-10 border-b lg:border-b-0 lg:border-r border-gray-200 bg-white flex items-center justify-center">
               <div className="relative w-full max-w-md aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm">
                 <img 
-                  src={product.image} 
+                  src={product.image || fallbackProductImage} 
                   alt={product.name} 
                   className="object-cover w-full h-full"
+                  onError={(e) => (e.currentTarget.src = fallbackProductImage)}
                 />
                 {product.tag && (
                   <span className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-bold shadow-sm uppercase tracking-wider">
@@ -200,6 +248,45 @@ export default function ProductDetailPage() {
                 </p>
               </div>
 
+              <section className="mb-8 rounded-3xl border border-gray-200 bg-gray-50 p-5">
+                <div className="flex items-center justify-between mb-4 gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500 font-black">Detail Rating</p>
+                    <h3 className="text-xl font-black text-gray-900">Ulasan & Kualitas</h3>
+                  </div>
+                  <div className="rounded-3xl bg-white px-4 py-3 shadow-sm text-center">
+                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Rating Rata-rata</p>
+                    <p className="text-3xl font-black text-gray-900">{displayRating.toFixed(1)}</p>
+                    <p className="text-xs text-gray-500">dari 5</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                  {detailRatings.map((detail) => (
+                    <div key={detail.label} className="rounded-3xl bg-white p-4 border border-gray-200">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-400 font-black mb-2">{detail.label}</p>
+                      <p className="text-xl font-black text-gray-900">{detail.value.toFixed(1)}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  {ratingBreakdown.map((row) => (
+                    <div key={row.star} className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-500 w-[24px]">{row.star}★</span>
+                      <div className="h-2 rounded-full flex-1 bg-gray-200 overflow-hidden">
+                        <div className="h-full bg-yellow-400" style={{ width: `${row.percent}%` }} />
+                      </div>
+                      <span className="text-xs text-gray-500 w-[32px] text-right">{row.count}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-xs text-gray-500">
+                  Berdasarkan {displayReviews} ulasan pelanggan, produk ini mendapat rating rata-rata {displayRating.toFixed(1)} dari 5.
+                </p>
+              </section>
+
               <hr className="border-gray-200 mb-6" />
 
               {/* KONTROL QUANTITY & BUTTON */}
@@ -240,6 +327,45 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+
+        {similarProducts.length > 0 && (
+          <section className="mt-10 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6 gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-500 font-black">Produk Serupa</p>
+                <h2 className="text-2xl font-black text-gray-900">Kamu mungkin suka</h2>
+              </div>
+              <p className="text-sm text-gray-500">Berdasarkan kategori dan tag produk</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {similarProducts.map((item) => (
+                <div key={item.id} className="rounded-[1.75rem] border border-gray-200 bg-gray-50 p-4 hover:shadow-lg transition-shadow">
+                  <div className="relative aspect-square rounded-3xl overflow-hidden bg-white mb-4">
+                    <img
+                      src={item.image || fallbackProductImage}
+                      alt={item.name}
+                      className="object-cover w-full h-full"
+                      onError={(e) => (e.currentTarget.src = fallbackProductImage)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-black text-gray-900 line-clamp-2">{item.name}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{item.category || "Frozen"}</span>
+                      <span>Rp {Number(item.price).toLocaleString('id-ID')}</span>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/product/${item.id}`)}
+                      className="w-full py-2 text-xs font-black uppercase rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Lihat
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

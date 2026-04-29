@@ -153,6 +153,8 @@ const fetchOrderById = async (orderId) => {
 const updateOrderStatus = async (orderId, status, trackingNumber = null) => {
   const db = getPool();
   await db.execute('UPDATE orders SET status = ?, tracking_number = ? WHERE id = ?', [status, trackingNumber, orderId]);
+  // Return updated order
+  return await exports.fetchOrderById(orderId);
 };
 
 const getAdminStats = async () => {
