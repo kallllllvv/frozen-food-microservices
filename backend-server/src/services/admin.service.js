@@ -55,7 +55,10 @@ const listOrders = async () => {
 
 const updateOrderStatus = async (orderId, payload) => {
   const status = String(payload.status || '').trim();
-  const trackingNumber = payload.trackingNumber ? String(payload.trackingNumber).trim() : null;
+  
+  // PERBAIKAN: Menangkap field 'tracking_number' dari frontend dengan benar
+  const rawTracking = payload.tracking_number || payload.trackingNumber;
+  const trackingNumber = rawTracking ? String(rawTracking).trim() : null;
 
   if (!status) {
     throw new Error('Status order wajib diisi.');

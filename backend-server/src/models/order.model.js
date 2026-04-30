@@ -96,7 +96,6 @@ const fetchOrders = async () => {
 const fetchOrdersByEmail = async (email) => {
   const db = getPool();
   
-  // 1. Ambil data order
   const [orders] = await db.execute(
     `SELECT o.id, o.status, o.tracking_number, o.total_amount as total, DATE_FORMAT(o.created_at, '%d %M %Y') as date
      FROM orders o
@@ -105,14 +104,12 @@ const fetchOrdersByEmail = async (email) => {
     [email]
   );
 
-  // 2. Ambil semua item untuk order-order tersebut
   const [items] = await db.execute(
     `SELECT order_id, product_name, quantity
      FROM order_items
      ORDER BY id ASC`
   );
 
-  // 3. Gabungkan item ke dalam masing-masing order
   const itemsByOrderId = items.reduce((acc, item) => {
     if (!acc[item.order_id]) {
       acc[item.order_id] = [];
@@ -153,8 +150,9 @@ const fetchOrderById = async (orderId) => {
 const updateOrderStatus = async (orderId, status, trackingNumber = null) => {
   const db = getPool();
   await db.execute('UPDATE orders SET status = ?, tracking_number = ? WHERE id = ?', [status, trackingNumber, orderId]);
-  // Return updated order
-  return await exports.fetchOrderById(orderId);
+  
+  // PERBAIKAN: Panggil langsung fungsi fetchOrderById tanpa menggunakan 'exports'
+  return await fetchOrderById(orderId);
 };
 
 const getAdminStats = async () => {
