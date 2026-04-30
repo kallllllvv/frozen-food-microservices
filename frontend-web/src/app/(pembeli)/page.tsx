@@ -100,6 +100,7 @@ export default function HomePage() {
             ...p,
             reviews: p.reviews ?? Math.floor(Math.random() * 50) + 10,
             sold: p.sold ?? Math.floor(Math.random() * 100) + 20,
+            rating: p.rating ?? (Math.random() * 4 + 1),
           }));
           setProducts(rows);
           setError(null);
@@ -541,7 +542,7 @@ export default function HomePage() {
                   </div>
                   <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
-                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span className="text-blue-600">{formatRupiah(Number(p.price))}</span>
                   </div>
                 </Link>
@@ -570,7 +571,7 @@ export default function HomePage() {
                   </div>
                   <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
-                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span>Terjual {p.sold || 0}</span>
                   </div>
                 </Link>
@@ -595,7 +596,7 @@ export default function HomePage() {
                   </div>
                   <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
-                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span className="line-through text-gray-400">{formatRupiah(Number(p.price) + 10000)}</span>
                   </div>
                   <div className="mt-1 text-sm font-black text-rose-600">{formatRupiah(Number(p.price))}</div>
@@ -621,7 +622,7 @@ export default function HomePage() {
                   </div>
                   <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
-                    <span className="inline-flex items-center gap-1 text-amber-600">★ {p.reviews || 0}</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span>{formatRupiah(Number(p.price))}</span>
                   </div>
                 </Link>
