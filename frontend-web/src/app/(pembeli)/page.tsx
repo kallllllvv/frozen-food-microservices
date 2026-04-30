@@ -301,7 +301,7 @@ export default function HomePage() {
   if (!mounted) return <div className="min-h-screen bg-white"></div>;
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col">
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
@@ -349,7 +349,7 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* ERROR NOTIFICATION */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md flex items-center justify-between animate-slide-down">
@@ -427,7 +427,7 @@ export default function HomePage() {
               >
                 <option value="all">Semua Brand</option>
                 {brands.map(brand => (
-                  <option key={brand} value={brand}>{brand}</option>
+                  <option key={brand as string} value={brand as string}>{brand as string}</option>
                 ))}
               </select>
             </div>
@@ -670,6 +670,89 @@ export default function HomePage() {
         </section>
 
       </main>
+
+      {/* --- FOOTER --- */}
+      <footer className="bg-[#232f3e] text-gray-300 font-sans mt-12">
+        {/* Back to top */}
+        <div
+          className="bg-[#37475a] hover:bg-[#485769] transition-colors cursor-pointer text-center py-4 text-sm text-white font-medium"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          Kembali ke atas
+        </div>
+
+        {/* Main Footer Links */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-white font-bold mb-4">Kenali Kami Lebih Dekat</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="#" className="hover:underline">Tentang FrozenShelly</Link></li>
+                <li><Link href="#" className="hover:underline">Karir</Link></li>
+                <li><Link href="#" className="hover:underline">Blog Makanan</Link></li>
+                <li><Link href="#" className="hover:underline">Keberlanjutan</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-bold mb-4">Bermitra dengan Kami</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="#" className="hover:underline">Jual Produk Frozen</Link></li>
+                <li><Link href="#" className="hover:underline">Menjadi Agen/Reseller</Link></li>
+                <li><Link href="#" className="hover:underline">Program Afiliasi</Link></li>
+                <li><Link href="#" className="hover:underline">Iklankan Produk Anda</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-bold mb-4">Metode Pembayaran</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="#" className="hover:underline">FrozenShelly Pay</Link></li>
+                <li><Link href="#" className="hover:underline">Kartu Kredit/Debit</Link></li>
+                <li><Link href="#" className="hover:underline">Bayar di Tempat (COD)</Link></li>
+                <li><Link href="#" className="hover:underline">Promo Bank Mitra</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-bold mb-4">Bantuan & Layanan</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="#" className="hover:underline">Lacak Pesanan Anda</Link></li>
+                <li><Link href="#" className="hover:underline">Tarif Pengiriman</Link></li>
+                <li><Link href="#" className="hover:underline">Garansi Suhu & Pengembalian</Link></li>
+                <li><Link href="#" className="hover:underline">Hubungi CS FrozenShelly</Link></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider & Logo/Settings */}
+        <div className="border-t border-gray-700 py-8">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-center gap-6">
+            <Link href="/" className="text-2xl font-black text-white italic tracking-tighter">
+              FrozenShelly
+            </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button className="border border-gray-500 rounded px-3 py-1.5 flex items-center gap-2 text-sm hover:border-white transition-colors">
+                🌐 <span className="text-gray-300">Bahasa Indonesia</span>
+              </button>
+              <button className="border border-gray-500 rounded px-3 py-1.5 flex items-center gap-2 text-sm hover:border-white transition-colors">
+                <span className="font-bold">Rp</span> <span className="text-gray-300">Rupiah - IDR</span>
+              </button>
+              <button className="border border-gray-500 rounded px-3 py-1.5 flex items-center gap-2 text-sm hover:border-white transition-colors">
+                🇮🇩 <span className="text-gray-300">Indonesia</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Legal */}
+        <div className="bg-[#131a22] py-8 text-center text-xs">
+          <div className="flex justify-center gap-6 mb-2">
+            <Link href="#" className="hover:underline">Ketentuan Penggunaan</Link>
+            <Link href="#" className="hover:underline">Kebijakan Privasi</Link>
+            <Link href="#" className="hover:underline">Peringatan Iklan</Link>
+          </div>
+          <p>© 2024-{new Date().getFullYear()}, FrozenShelly.com, Inc. atau afiliasinya</p>
+        </div>
+      </footer>
     </div>
   );
 }
