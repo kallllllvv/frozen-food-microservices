@@ -462,7 +462,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
               {searchSpotlightProducts.map((p) => (
-                <Link key={`search-${p.id}`} href={`/product/${p.id}`} className={`min-w-[220px] snap-start rounded-2xl border p-3 bg-white transition-all duration-300 ${highlightMatches(p.name) ? 'border-amber-400 ring-2 ring-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200 hover:border-blue-300'}`}>
+                <Link key={`search-${p.id}`} href={`/product/${p.id}`} className={`w-[220px] flex-none snap-start rounded-2xl border p-3 bg-white transition-all duration-300 ${highlightMatches(p.name) ? 'border-amber-400 ring-2 ring-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200 hover:border-blue-300'}`}>
                   <div className="relative aspect-square mb-3 overflow-hidden rounded-xl">
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <div className="absolute top-2 left-2 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok</div>
@@ -531,7 +531,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
               {recommendedProducts.map((p) => (
-                <Link key={p.id} href={`/product/${p.id}`} className={`group min-w-[230px] snap-start rounded-[1.5rem] border bg-white p-3 shadow-sm transition-all ${highlightMatches(p.name) ? 'border-cyan-300 ring-2 ring-cyan-100' : 'border-gray-200 hover:border-cyan-300'}`}>
+                <Link key={p.id} href={`/product/${p.id}`} className={`group w-[230px] flex-none snap-start rounded-[1.5rem] border bg-white p-3 shadow-sm transition-all ${highlightMatches(p.name) ? 'border-cyan-300 ring-2 ring-cyan-100' : 'border-gray-200 hover:border-cyan-300'}`}>
                   <div className="relative aspect-[4/3] mb-3 overflow-hidden rounded-2xl">
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
@@ -550,8 +550,6 @@ export default function HomePage() {
           </section>
         )}
 
-
-
         {/* PRODUCT GRID */}
         {/* --- CURATED SECTIONS: Trending / Promo / Top Rating --- */}
         <section className="grid gap-6 mb-8 lg:grid-cols-3">
@@ -565,7 +563,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
               {trendingProducts.map((p) => (
-                <Link key={`trend-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-lime-300 ring-2 ring-lime-100' : 'border-gray-200 hover:border-lime-300'}`}>
+                <Link key={`trend-${p.id}`} href={`/product/${p.id}`} className={`w-[190px] flex-none snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-lime-300 ring-2 ring-lime-100' : 'border-gray-200 hover:border-lime-300'}`}>
                   <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-lime-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Trending</span>
@@ -590,7 +588,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
               {promoProducts.map((p) => (
-                <Link key={`promo-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-gray-200 hover:border-emerald-300'}`}>
+                <Link key={`promo-${p.id}`} href={`/product/${p.id}`} className={`w-[190px] flex-none snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-gray-200 hover:border-emerald-300'}`}>
                   <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Promo</span>
@@ -616,7 +614,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory">
               {topRatedProducts.map((p) => (
-                <Link key={`top-${p.id}`} href={`/product/${p.id}`} className={`min-w-[190px] snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200 hover:border-amber-300'}`}>
+                <Link key={`top-${p.id}`} href={`/product/${p.id}`} className={`w-[190px] flex-none snap-start rounded-2xl bg-white border p-3 transition-all ${highlightMatches(p.name) ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200 hover:border-amber-300'}`}>
                   <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-amber-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Top</span>
