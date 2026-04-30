@@ -642,14 +642,10 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {processedCategories.map((category) => (
-              <button
+              <Link
                 key={category.name}
-                onClick={() => setActiveCategory(category.name)}
-                className={`group relative rounded-2xl overflow-hidden aspect-[4/3] transition-all duration-300 ${
-                  activeCategory === category.name
-                    ? 'ring-2 ring-blue-500 shadow-xl scale-105'
-                    : 'hover:scale-105 hover:shadow-lg'
-                }`}
+                href={`/category/${encodeURIComponent(category.name)}`}
+                className="group relative rounded-2xl overflow-hidden aspect-[4/3] transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer"
               >
                 <img
                   src={category.backgroundImage}
@@ -662,87 +658,18 @@ export default function HomePage() {
                   <h3 className="text-white font-black text-lg mb-1">{category.name}</h3>
                   <p className="text-white/80 text-sm">{category.products.length} produk tersedia</p>
                 </div>
-                {activeCategory === category.name && (
-                  <div className="absolute top-4 right-4">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
-                )}
-              </button>
+                </div>
+              </Link>
             ))}
           </div>
         </section>
 
-        {/* --- LIST PRODUK BERDASARKAN KATEGORI --- */}
-        <section>
-          <div className="flex items-center justify-between mb-8">
-             <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">
-               {activeCategory === "Semua" ? "Semua Produk" : `Produk ${activeCategory}`} ({sortedProducts.length})
-             </h3>
-          </div>
-
-          {isLoading ? (
-            <div className="py-24 text-center">
-               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-               <p className="mt-4 text-gray-500 font-medium">Memuat produk...</p>
-            </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product) => {
-                const isHighlighted = highlightMatches(product.name) || highlightMatches(product.category) || highlightMatches(product.tag);
-                return (
-                <div key={product.id} className={`group bg-white rounded-[1.75rem] border transition-all duration-300 overflow-hidden flex flex-col ${isHighlighted ? 'border-amber-400 ring-2 ring-amber-100 shadow-xl shadow-amber-50' : 'border-gray-100 hover:shadow-2xl hover:shadow-blue-50'}`}>
-                  <Link href={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
-                    {product.tag && (
-                      <span className={`absolute top-3 left-3 z-10 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase italic shadow-md ${product.tag.toLowerCase().includes('promo') ? 'bg-emerald-500' : 'bg-blue-600'}`}>
-                        {product.tag}
-                      </span>
-                    )}
-                    <img src={product.image || productFallbackImage} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
-                    {isHighlighted && (
-                      <span className="absolute bottom-3 left-3 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok Dicari</span>
-                    )}
-                  </Link>
-
-                  <div className="p-5 flex-1 flex flex-col">
-                    <Link href={`/product/${product.id}`} className="block">
-                      <h4 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[40px] cursor-pointer">
-                        {product.name}
-                      </h4>
-                    </Link>
-                    <div className="flex items-center gap-2 mb-2 text-[10px] font-black uppercase tracking-widest">
-                      <span className="inline-flex items-center gap-1 text-amber-600">★ {product.reviews || 0}</span>
-                      <span className="text-gray-300">•</span>
-                      <span className="text-emerald-600">Terjual {product.sold || 0}</span>
-                    </div>
-                    <p className="text-base font-black text-gray-900 mb-3">
-                      {formatRupiah(product.price)}
-                    </p>
-                    <div className="mb-4 flex items-center gap-1.5 mt-auto">
-                      <div className={`h-1.5 w-1.5 rounded-full ${product.stock <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
-                      <p className={`text-[10px] font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-green-600'}`}>
-                        Stok: {product.stock}
-                      </p>
-                    </div>
-                    <Link href={`/product/${product.id}`} className="block w-full">
-                       <button className={`w-full py-2.5 text-xs font-black rounded-2xl transition-all uppercase tracking-widest cursor-pointer ${isHighlighted ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-gray-50 text-gray-700 hover:bg-gray-900 hover:text-white'}`}>
-                         Lihat Detail
-                       </button>
-                    </Link>
-                  </div>
-                </div>
-              )})}
-            </div>
-          ) : (
-            <div className="py-24 text-center border-2 border-dashed border-gray-100 rounded-3xl">
-              <p className="text-gray-400 font-bold mb-2">Yah, produk tidak ditemukan...</p>
-              <button onClick={() => {setActiveCategory("Semua"); setPriceFilter("all"); setSearchQuery("");}} className="text-blue-600 text-sm font-black underline mt-2">Reset Filter</button>
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );
