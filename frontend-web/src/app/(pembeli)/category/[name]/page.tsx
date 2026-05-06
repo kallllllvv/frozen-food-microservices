@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { ChevronLeft, ShoppingCart, Star, Search, SlidersHorizontal, X } from 'lucide-react';
 
-export default function CategoryPage() {
+export default function CategorySidebarPage() {
   const params = useParams();
   const router = useRouter();
   const categoryName = decodeURIComponent(params.name as string);
@@ -12,468 +13,267 @@ export default function CategoryPage() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
+  const [cartCount, setCartCount] = useState(0);
   
-  // State untuk Data Produk dari API Backend
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State untuk Filter & Pencarian
   const [priceFilter, setPriceFilter] = useState("all");
   const [sortOption, setSortOption] = useState("default");
   const [searchQuery, setSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
+  
+  // STATE BARU: Untuk kontrol mode input search
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const foodFallbackImage = "https://images.unsplash.com/photo-1547592180-3f4f7f42b2a1?q=80&w=1200&auto=format&fit=crop";
   const productFallbackImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1200&auto=format&fit=crop";
 
-  const getCategoryBackgroundImage = (category: string) => {
-    const images: Record<string, string> = {
-      'Sosis': 'https://images.unsplash.com/photo-1551782450-17144efb5723?q=80&w=1200&auto=format&fit=crop',
-      'Nugget': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?q=80&w=1200&auto=format&fit=crop',
-      'Kentang': 'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?q=80&w=1200&auto=format&fit=crop',
-      'Fillet': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?q=80&w=1200&auto=format&fit=crop',
-      'Olahan Ikan': 'https://images.unsplash.com/photo-1559847844-5315695dadae?q=80&w=1200&auto=format&fit=crop',
-      'Daging': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?q=80&w=1200&auto=format&fit=crop',
-      'Ayam': 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop',
-      'Seafood': 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?q=80&w=1200&auto=format&fit=crop',
-      'Camilan': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop',
-    };
-    return images[category] || foodFallbackImage;
+  const updateCartCount = () => {
+    const cartStr = localStorage.getItem("cart");
+    if (cartStr) {
+      const cart = JSON.parse(cartStr);
+      setCartCount(cart.reduce((total: number, item: any) => total + item.quantity, 0));
+    } else {
+      setCartCount(0);
+    }
   };
 
-  // Get brands from category products
-  const brandsInCategory = useMemo(() => {
-    const brandSet = new Set(products.map(p => p.brand).filter(Boolean));
-    return Array.from(brandSet).sort();
-  }, [products]);
+  const addToCart = (product: any) => {
+    const cartStr = localStorage.getItem("cart");
+    let cart = cartStr ? JSON.parse(cartStr) : [];
+    const existingItem = cart.find((item: any) => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({ id: product.id, name: product.name, price: product.price, image: product.image || productFallbackImage, quantity: 1, selected: true });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+    window.dispatchEvent(new Event("storage"));
+    alert(`${product.name} ditambah ke keranjang!`);
+  };
 
   useEffect(() => {
     setMounted(true);
+    updateCartCount();
+    window.addEventListener('storage', updateCartCount);
     
-    // 1. Cek status login
     const user = localStorage.getItem("user"); 
     if (user) {
       try {
         const userData = JSON.parse(user);
         setIsLoggedIn(true);
         setUserName(userData.name || "User");
-      } catch (error) {
-        console.error("Gagal membaca data user:", error);
-      }
+      } catch (e) { console.error(e); }
     }
 
-    // 2. Fetch data produk dari Backend berdasarkan kategori
     const fetchProducts = async () => {
       try {
-        setError(null);
+        setIsLoading(true);
         const response = await fetch(`http://localhost:5000/api/products?category=${encodeURIComponent(categoryName)}`);
         if (response.ok) {
           const data = await response.json();
-          const rows = (data.data || data).map((p: any) => ({
+          setProducts((data.data || data).map((p: any) => ({
             ...p,
             reviews: p.reviews ?? Math.floor(Math.random() * 50) + 10,
             sold: p.sold ?? Math.floor(Math.random() * 100) + 20,
-          }));
-          setProducts(rows);
-          setError(null);
-        } else {
-          const errorMsg = `Gagal mengambil data produk (${response.status})`;
-          setError(errorMsg);
-          setProducts([]);
+            rating: p.rating ?? (Math.random() * 1.5 + 3.5),
+          })));
         }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Gagal terhubung ke server. Pastikan backend sedang berjalan di http://localhost:5000";
-        setError(errorMsg);
-        setProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
+      } catch (err) { setError("Gagal memuat produk."); } finally { setIsLoading(false); }
     };
-
     fetchProducts();
+    return () => window.removeEventListener('storage', updateCartCount);
   }, [categoryName]);
 
-  // Utility function untuk format harga
-  const formatRupiah = (angka: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(angka);
-  };
+  const brandsInCategory = useMemo(() => {
+    return Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort() as string[];
+  }, [products]);
 
-  // Logika Filtering
-  const filteredProducts = products.filter((product) => {
-    let matchPrice = true;
-    const priceNum = Number(product.price);
-    if (priceFilter === "under50") matchPrice = priceNum < 50000;
-    else if (priceFilter === "above50") matchPrice = priceNum >= 50000;
-
-    const matchBrand = brandFilter === "all" || product.brand === brandFilter;
-    const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-
+  const filteredProducts = products.filter((p) => {
+    const priceNum = Number(p.price);
+    const matchPrice = priceFilter === "all" ? true : (priceFilter === "under50" ? priceNum < 50000 : priceNum >= 50000);
+    const matchBrand = brandFilter === "all" || p.brand === brandFilter;
+    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchPrice && matchBrand && matchSearch;
   });
 
-  // Apply sorting
   const sortedProducts = useMemo(() => {
     const arr = [...filteredProducts];
     switch (sortOption) {
-      case 'price-asc':
-        return arr.sort((a, b) => Number(a.price) - Number(b.price));
-      case 'price-desc':
-        return arr.sort((a, b) => Number(b.price) - Number(a.price));
-      case 'reviews-desc':
-        return arr.sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
-      case 'reviews-asc':
-        return arr.sort((a, b) => (a.reviews || 0) - (b.reviews || 0));
-      case 'trending':
-        return arr.sort((a, b) => (b.sold || 0) - (a.sold || 0));
-      case 'promo':
-        return arr.filter(p => (p.tag && String(p.tag).toLowerCase().includes('promo')) || Number(p.price) < 30000).sort((a,b) => Number(a.price) - Number(b.price));
-      default:
-        return arr;
+      case 'price-asc': return arr.sort((a, b) => Number(a.price) - Number(b.price));
+      case 'price-desc': return arr.sort((a, b) => Number(b.price) - Number(a.price));
+      case 'trending': return arr.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+      default: return arr;
     }
   }, [filteredProducts, sortOption]);
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const highlightMatches = (text?: string) => Boolean(normalizedSearch && text && text.toLowerCase().includes(normalizedSearch));
+  const formatRupiah = (angka: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    window.location.reload();
-  };
-
-  const handleRetry = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`http://localhost:5000/api/products?category=${encodeURIComponent(categoryName)}`);
-      if (response.ok) {
-        const data = await response.json();
-        const rows = (data.data || data).map((p: any) => ({
-          ...p,
-          reviews: p.reviews ?? Math.floor(Math.random() * 50) + 10,
-          sold: p.sold ?? Math.floor(Math.random() * 100) + 20,
-        }));
-        setProducts(rows);
-        setError(null);
-      } else {
-        setError(`Gagal mengambil data produk (${response.status})`);
-        setProducts([]);
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Gagal terhubung ke server. Pastikan backend sedang berjalan di http://localhost:5000";
-      setError(errorMsg);
-      setProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const closeError = () => {
-    setError(null);
-  };
-
-  if (!mounted) return <div className="min-h-screen bg-white"></div>;
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col">
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-black bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent italic">
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
+          <Link href="/" className="text-2xl font-black bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent italic tracking-tighter">
             FrozenShelly
           </Link>
-
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* ICON HISTORY */}
-            {isLoggedIn && (
-              <Link href="/history" className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors group" title="Riwayat Pesanan">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </Link>
-            )}
-
             <Link href="/cart" className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors group">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+              <ShoppingCart className="h-6 w-6 group-hover:text-blue-600" />
+              {cartCount > 0 && <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-[10px] font-black leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-blue-600 rounded-full shadow-lg">{cartCount}</span>}
             </Link>
-
             {isLoggedIn ? (
               <div className="flex items-center gap-3 border-l pl-4 border-gray-200">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Halo,</span>
-                  <Link href="/history" className="text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors">
-                    {userName}
-                  </Link>
+                  <Link href="/profile" className="text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors">{userName}</Link>
                 </div>
-                <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
               </div>
             ) : (
-              <div className="flex gap-2 border-l pl-4 border-gray-200">
-                <Link href="/auth/login" className="text-sm font-bold px-4 py-2 text-gray-700 hover:text-blue-600">Masuk</Link>
-                <Link href="/auth/register" className="text-sm font-bold px-4 py-2 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-100 hover:bg-blue-700">Daftar</Link>
-              </div>
+              <Link href="/auth/login" className="text-sm font-black px-4 py-2 bg-blue-600 text-white rounded-full">Masuk</Link>
             )}
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
-        {/* CATEGORY HEADER */}
-        <div className="mb-8 rounded-[2rem] border border-gray-100 bg-gradient-to-r from-gray-50 via-blue-50 to-cyan-50 p-6 shadow-sm overflow-hidden">
-          <div className="relative">
-            <img
-              src={getCategoryBackgroundImage(categoryName)}
-              alt={categoryName}
-              className="absolute inset-0 w-full h-full object-cover opacity-10 rounded-2xl"
-              onError={(e) => (e.currentTarget.src = foodFallbackImage)}
-            />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <Link href="/" className="text-gray-500 hover:text-gray-700 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                </Link>
-                <span className="text-sm text-gray-500">/</span>
-                <span className="text-sm font-bold text-blue-600">{categoryName}</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-2">
-                Produk {categoryName}
-              </h1>
-              <p className="text-gray-600 text-lg">
-                Temukan pilihan terbaik dari kategori {categoryName} dengan harga terjangkau
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row gap-8 px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* SIDEBAR FILTER */}
+        <aside className="lg:w-64 flex-shrink-0 space-y-8">
+          <button onClick={() => router.push('/')} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+            <ChevronLeft className="h-4 w-4" /> Kembali
+          </button>
 
-        {/* ERROR NOTIFICATION */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md flex items-center justify-between animate-slide-down">
-            <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <p className="font-bold text-red-800 text-sm">Terjadi Kesalahan</p>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={handleRetry}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Coba Lagi
-              </button>
-              <button
-                onClick={closeError}
-                className="px-3 py-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* FILTER SECTION */}
-        <div className="mb-8 bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-          <div className="flex flex-col gap-4">
-            {/* Search Bar */}
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder={`Cari produk di kategori ${categoryName}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block pl-9 p-2.5 outline-none transition-colors"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Price Filter */}
-              <div>
-                <label className="block text-xs font-black text-gray-600 uppercase mb-2">Filter Harga</label>
-                <select 
-                  value={priceFilter}
-                  onChange={(e) => setPriceFilter(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer"
+          {/* INLINE SEARCH FIELD */}
+          <div className="min-h-[40px] flex flex-col justify-center">
+            {isSearchOpen ? (
+              <div className="relative flex items-center group">
+                <Search className="absolute left-0 h-3.5 w-3.5 text-blue-600" />
+                <input 
+                  autoFocus
+                  type="text" 
+                  placeholder="Cari camilan..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => { if(searchQuery === "") setIsSearchOpen(false) }}
+                  className="w-full bg-transparent border-b-2 border-blue-600 ml-6 py-1 text-xs font-black uppercase tracking-widest outline-none focus:ring-0"
+                />
+                <button 
+                  onClick={() => {setSearchQuery(""); setIsSearchOpen(false);}}
+                  className="absolute right-0 text-gray-400 hover:text-red-500"
                 >
-                  <option value="all">Semua Harga</option>
-                  <option value="under50">Di bawah Rp 50.000</option>
-                  <option value="above50">Rp 50.000 ke atas</option>
-                </select>
-              </div>
-
-              {/* Sort Option */}
-              <div>
-                <label className="block text-xs font-black text-gray-600 uppercase mb-2">Urutkan</label>
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  className="w-full bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer"
-                >
-                  <option value="default">Default</option>
-                  <option value="price-asc">Termurah → Termahal</option>
-                  <option value="price-desc">Termahal → Termurah</option>
-                  <option value="reviews-desc">Ulasan Terbaik</option>
-                  <option value="trending">Trending (Terlaris)</option>
-                  <option value="promo">Promo / Harga Murah</option>
-                </select>
-              </div>
-
-              {/* Brand Filter */}
-              <div>
-                <label className="block text-xs font-black text-gray-600 uppercase mb-2">Filter Brand</label>
-                <select
-                  value={brandFilter}
-                  onChange={(e) => setBrandFilter(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer"
-                >
-                  <option value="all">Semua Brand</option>
-                  {brandsInCategory.map(brand => (
-                    <option key={brand} value={brand}>{brand}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Reset Button */}
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setPriceFilter("all");
-                    setSortOption("default");
-                    setBrandFilter("all");
-                    setSearchQuery("");
-                  }}
-                  className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
-                >
-                  Reset Filter
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
+            ) : (
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="flex items-center gap-2 text-[11px] font-black text-gray-900 uppercase tracking-[0.15em] hover:text-blue-600 transition-all group"
+              >
+                <Search className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                <span>Cari Produk</span>
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* BRAND SHOWCASE */}
-        {brandsInCategory.length > 0 && (
-          <div className="mb-8 p-5 rounded-[2rem] border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.35em] text-blue-600 font-black mb-3">Brand Tersedia</p>
-            <div className="flex flex-wrap gap-2">
-              {brandsInCategory.map((brand) => (
-                <button
-                  key={brand}
-                  onClick={() => setBrandFilter(brandFilter === brand ? "all" : brand)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
-                    brandFilter === brand
-                      ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-blue-300"
-                  }`}
+          {/* Filter Harga */}
+          <div className="space-y-4">
+            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <SlidersHorizontal className="h-3 w-3" /> Harga
+            </h3>
+            <div className="flex flex-col gap-2">
+              {[{id:'all', l:'Semua Harga'}, {id:'under50', l:'Di bawah 50rb'}, {id:'above50', l:'Di atas 50rb'}].map((opt) => (
+                <button 
+                  key={opt.id} 
+                  onClick={() => setPriceFilter(opt.id)}
+                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${priceFilter === opt.id ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-gray-400 hover:bg-gray-50'}`}
                 >
-                  {brand}
+                  {opt.l}
                 </button>
               ))}
-              {brandFilter !== "all" && (
-                <button
-                  onClick={() => setBrandFilter("all")}
-                  className="px-4 py-2 rounded-full text-sm font-bold text-gray-500 border border-gray-300 hover:border-red-300 hover:text-red-600 transition-all"
-                >
-                  ✕ Hapus Filter
-                </button>
-              )}
             </div>
           </div>
-        )}
 
-        {/* PRODUCT GRID */}
-        <section>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">
-              Produk {categoryName} ({sortedProducts.length})
-            </h2>
+          {/* Filter Brand */}
+          <div className="space-y-4">
+            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Brand</h3>
+            <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-2 scrollbar-hide">
+              <button 
+                onClick={() => setBrandFilter("all")}
+                className={`text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${brandFilter === "all" ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-gray-400 hover:bg-gray-50'}`}
+              >Semua Brand</button>
+              {brandsInCategory.map(brand => (
+                <button 
+                  key={brand} 
+                  onClick={() => setBrandFilter(brand)}
+                  className={`text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${brandFilter === brand ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-gray-400 hover:bg-gray-50'}`}
+                >{brand}</button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={() => {setPriceFilter("all"); setBrandFilter("all"); setSortOption("default"); setSearchQuery(""); setIsSearchOpen(false);}} className="w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-lg active:scale-95">Reset Filter</button>
+        </aside>
+
+        {/* CONTENT AREA */}
+        <div className="flex-1">
+          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-6">
+            <div>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase leading-none">{categoryName}</h1>
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mt-3">Ditemukan {sortedProducts.length} Produk</p>
+            </div>
+            
+            <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Urutkan:</span>
+              <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="bg-white border-none rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider outline-none cursor-pointer shadow-sm">
+                <option value="default">Default</option>
+                <option value="trending">Terlaris</option>
+                <option value="price-asc">Termurah</option>
+                <option value="price-desc">Termahal</option>
+              </select>
+            </div>
           </div>
 
           {isLoading ? (
-            <div className="py-24 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-500 font-medium">Memuat produk...</p>
-            </div>
+            <div className="py-20 text-center"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="font-black text-gray-300 uppercase tracking-widest text-xs">Memuat Katalog...</p></div>
           ) : sortedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product) => {
-                const isHighlighted = highlightMatches(product.name);
-                return (
-                  <div key={product.id} className={`group bg-white rounded-[1.75rem] border transition-all duration-300 overflow-hidden flex flex-col ${isHighlighted ? 'border-amber-400 ring-2 ring-amber-100 shadow-xl shadow-amber-50' : 'border-gray-100 hover:shadow-2xl hover:shadow-blue-50'}`}>
-                    <Link href={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
-                      {product.tag && (
-                        <span className={`absolute top-3 left-3 z-10 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase italic shadow-md ${product.tag.toLowerCase().includes('promo') ? 'bg-emerald-500' : 'bg-blue-600'}`}>
-                          {product.tag}
-                        </span>
-                      )}
-                      <img src={product.image || productFallbackImage} alt={product.name} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
-                      {isHighlighted && (
-                        <span className="absolute bottom-3 left-3 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok Dicari</span>
-                      )}
-                    </Link>
-
-                    <div className="p-5 flex-1 flex flex-col">
-                      <Link href={`/product/${product.id}`} className="block">
-                        <h4 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[40px] cursor-pointer">
-                          {product.name}
-                        </h4>
-                      </Link>
-                      <div className="flex items-center gap-2 mb-2 text-[10px] font-black uppercase tracking-widest">
-                        <span className="inline-flex items-center gap-1 text-amber-600">★ {product.reviews || 0}</span>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-emerald-600">Terjual {product.sold || 0}</span>
-                      </div>
-                      {product.brand && (
-                        <p className="text-xs text-gray-500 font-semibold mb-2">Brand: {product.brand}</p>
-                      )}
-                      <p className="text-base font-black text-gray-900 mb-3">
-                        {formatRupiah(product.price)}
-                      </p>
-                      <div className="mb-4 flex items-center gap-1.5 mt-auto">
-                        <div className={`h-1.5 w-1.5 rounded-full ${product.stock <= 5 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
-                        <p className={`text-[10px] font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-green-600'}`}>
-                          Stok: {product.stock}
-                        </p>
-                      </div>
-                      <Link href={`/product/${product.id}`} className="block w-full">
-                        <button className={`w-full py-2.5 text-xs font-black rounded-2xl transition-all uppercase tracking-widest cursor-pointer ${isHighlighted ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-gray-50 text-gray-700 hover:bg-gray-900 hover:text-white'}`}>
-                          Lihat Detail
-                        </button>
-                      </Link>
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+              {sortedProducts.map((p) => (
+                <div key={p.id} className="group flex flex-col bg-white rounded-[2rem] border border-gray-100 p-4 hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500 hover:-translate-y-1">
+                  <Link href={`/product/${p.id}`} className="relative aspect-square mb-4 overflow-hidden rounded-[1.5rem] bg-gray-50">
+                    <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  </Link>
+                  <div className="flex items-start justify-between gap-2 min-h-[44px]">
+                    <p className="text-sm font-black text-gray-800 line-clamp-2 leading-tight uppercase tracking-tight">{p.name}</p>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm flex-shrink-0">
+                      <ShoppingCart className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{p.brand || 'Premium'}</span>
+                      <span className="text-blue-600 font-black text-lg leading-none tracking-tighter">{formatRupiah(Number(p.price))}</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg text-amber-600 border border-amber-100">
+                      <Star className="h-3 w-3 fill-current" />
+                      <span className="text-[10px] font-black">{Number(p.rating).toFixed(1)}</span>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="py-24 text-center border-2 border-dashed border-gray-100 rounded-3xl">
-              <p className="text-gray-400 font-bold mb-2">Yah, produk tidak ditemukan...</p>
-              <button onClick={() => {setPriceFilter("all"); setSortOption("default"); setBrandFilter("all"); setSearchQuery("");}} className="text-blue-600 text-sm font-black underline mt-2">Reset Filter</button>
+            <div className="py-32 text-center border-2 border-dashed border-gray-100 rounded-[3rem]">
+              <p className="text-gray-300 font-black text-3xl uppercase tracking-tighter mb-2">Produk Kosong</p>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Coba reset filter pencarian</p>
             </div>
           )}
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

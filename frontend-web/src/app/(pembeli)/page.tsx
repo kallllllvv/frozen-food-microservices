@@ -772,6 +772,50 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* --- SECTION JELAJAH KATEGORI (DI BAWAH) --- */}
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] text-blue-500 uppercase mb-1">Eksplorasi</p>
+              <h2 className="text-2xl font-black text-gray-900">Jelajah Kategori</h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {processedCategories.map((category) => (
+              <Link
+                key={category.name}
+                href={`/category/${encodeURIComponent(category.name)}`}
+                className="group relative h-48 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100"
+              >
+                <img
+                  src={category.backgroundImage}
+                  alt={category.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  onError={(e) => (e.currentTarget.src = foodFallbackImage)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                
+                <div className="absolute bottom-6 left-6 right-6">
+                  <h3 className="text-xl font-black text-white mb-1 group-hover:text-blue-300 transition-colors">
+                    {category.name}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <p className="text-white/70 text-xs font-bold uppercase tracking-widest">
+                      {category.products.length} Produk
+                    </p>
+                    <span className="bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                       </svg>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* --- FOOTER --- */}
