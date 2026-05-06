@@ -224,10 +224,27 @@ export default function HomePage() {
       minimumFractionDigits: 0,
     }).format(angka);
   };
+  
+  //mapping icon
+  const getCategoryIcon = (name: string) => {
+    const icons: Record<string, string> = {
+      'Semua': '🍱',
+      'Sosis': '🌭',
+      'Nugget': '🍗',
+      'Kentang': '🍟',
+      'Fillet': '🥩',
+      'Olahan Ikan': '🍥',
+      'Daging': '🍖',
+      'Ayam': '🐔',
+      'Seafood': '🦞',
+      'Camilan': '🍿',
+    };
+    return icons[name] || '🍽️';
+  };
 
   const categories = [
     { name: "Semua", icon: "🍱" },
-    ...processedCategories.slice(0, 8).map(cat => ({ name: cat.name, icon: "🍽️" }))
+    ...processedCategories.slice(0, 8).map(cat => ({ name: cat.name, icon: getCategoryIcon(cat.name) }))
   ];
 
   // Logika Filtering (dijalankan pada data 'products' yang sudah di-fetch)
@@ -484,20 +501,59 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
-            {categories.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-bold transition-all whitespace-nowrap ${
-                  activeCategory === cat.name ? "bg-gray-900 border-gray-900 text-white shadow-lg" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"
-                }`}
-              >
-                <span>{cat.icon}</span>{cat.name}
-              </button>
-            ))}
+          {/* --- ULTRA MODERN COLORFUL CATEGORY FILTER --- */}
+<div className="flex gap-4 overflow-x-auto pb-8 pt-2 scrollbar-hide flex-1">
+  {categories.map((cat) => {
+    // Definisi warna unik tiap kategori pas aktif
+    const colorMap: Record<string, string> = {
+      'Semua': 'from-gray-700 to-gray-900 shadow-gray-200 text-white',
+      'Sosis': 'from-orange-400 to-orange-600 shadow-orange-100 text-white',
+      'Nugget': 'from-amber-400 to-amber-500 shadow-amber-100 text-white',
+      'Kentang': 'from-yellow-400 to-yellow-500 shadow-yellow-100 text-white',
+      'Fillet': 'from-blue-400 to-blue-600 shadow-blue-100 text-white',
+      'Olahan Ikan': 'from-cyan-400 to-cyan-600 shadow-cyan-100 text-white',
+      'Daging': 'from-rose-500 to-red-600 shadow-rose-100 text-white',
+      'Ayam': 'from-red-400 to-orange-500 shadow-red-100 text-white',
+      'Seafood': 'from-indigo-400 to-blue-500 shadow-indigo-100 text-white',
+      'Camilan': 'from-purple-400 to-pink-500 shadow-purple-100 text-white',
+    };
+
+    const isActive = activeCategory === cat.name;
+    const activeStyle = colorMap[cat.name] || 'from-blue-500 to-cyan-500 shadow-blue-100 text-white';
+
+    return (
+      <button
+        key={cat.name}
+        onClick={() => setActiveCategory(cat.name)}
+        className={`
+          group relative flex items-center gap-3 px-7 py-3.5 rounded-[1.25rem] text-sm font-black 
+          transition-all duration-500 whitespace-nowrap overflow-hidden
+          ${isActive 
+            ? `bg-gradient-to-br ${activeStyle} shadow-[0_15px_30px_-5px] scale-105 -translate-y-1` 
+            : 'bg-gray-50 border border-gray-100 text-gray-400 hover:bg-white hover:border-gray-300 hover:text-gray-600 hover:-translate-y-0.5'
+          }
+        `}
+      >
+        {/* Efek Cahaya Halus pas Aktif */}
+        {isActive && (
+          <div className="absolute inset-0 bg-white/20 blur-xl group-hover:opacity-0 transition-opacity" />
+        )}
+        
+        <span className={`
+          text-xl transition-all duration-500
+          ${isActive ? 'scale-125 rotate-[10deg]' : 'group-hover:scale-110 group-hover:-rotate-12'}
+        `}>
+          {cat.icon}
+        </span>
+        
+        <span className="relative z-10 tracking-tight">
+          {cat.name}
+        </span>
+      </button>
+    );
+  })}
+</div>
           </div>
-        </div>
 
         {/* --- SEARCH SPOTLIGHT --- */}
         {normalizedSearch && searchSpotlightProducts.length > 0 && (
@@ -716,45 +772,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        {/* --- KATEGORI FROZEN FOOD --- */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-gray-500 font-black">Kategori Frozen Food</p>
-              <h2 className="text-2xl font-black text-gray-900">Pilih Kategori Favoritmu</h2>
-            </div>
-            <p className="text-sm text-gray-500">Diurutkan berdasarkan produk terbaru</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {processedCategories.map((category) => (
-              <Link
-                key={category.name}
-                href={`/category/${encodeURIComponent(category.name)}`}
-                className="group relative rounded-2xl overflow-hidden aspect-[4/3] transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer"
-              >
-                <img
-                  src={category.backgroundImage}
-                  alt={category.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  onError={(e) => (e.currentTarget.src = foodFallbackImage)}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-black text-lg mb-1">{category.name}</h3>
-                  <p className="text-white/80 text-sm">{category.products.length} produk tersedia</p>
-                </div>
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
       </main>
 
       {/* --- FOOTER --- */}
