@@ -10,6 +10,9 @@ export default function HomePage() {
   const [bannerSlides, setBannerSlides] = useState<any[]>([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
+  //state untuk angka di navbar
+  const [cartCount, setCartCount] = useState(0);
+
   // State untuk Data Produk dari API Backend
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +41,41 @@ export default function HomePage() {
       'Camilan': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop',
     };
     return images[category] || foodFallbackImage;
+  };
+
+  // hitung total qty dari localStorage
+  const updateCartCount = () => {
+    const cartStr = localStorage.getItem("cart");
+    if (cartStr) {
+      const cart = JSON.parse(cartStr);
+      const count = cart.reduce((total: number, item: any) => total + item.quantity, 0);
+      setCartCount(count);
+    } else {
+      setCartCount(0);
+    }
+  };
+
+  //add toCart
+  const addToCart = (product: any) => {
+    const cartStr = localStorage.getItem("cart");
+    let cart = cartStr ? JSON.parse(cartStr) : [];
+    const existingItem = cart.find((item: any) => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image || productFallbackImage,
+        quantity: 1,
+        selected: true
+      });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount(); // Update angka navbar seketika
+    window.dispatchEvent(new Event("storage"));
+    alert(`${product.name} ditambah ke keranjang!`);
   };
 
   // Processed categories from products
@@ -70,11 +108,16 @@ export default function HomePage() {
 
   const brands = useMemo(() => {
     const brandSet = new Set(products.map(p => p.brand).filter(Boolean));
-    return Array.from(brandSet);
+    return Array.from(brandSet) as string[];
   }, [products]);
 
   useEffect(() => {
     setMounted(true);
+    updateCartCount();
+
+    //agar angka di navbar update jika ada perubahan di tab lain /storage
+    window.addEventListener('storage', updateCartCount);
+    
     
     // 1. Cek status login
     const user = localStorage.getItem("user"); 
@@ -159,6 +202,8 @@ export default function HomePage() {
     };
 
     fetchBanner();
+
+    return () => window.removeEventListener('storage', updateCartCount);
   }, []);
 
   useEffect(() => {
@@ -323,6 +368,12 @@ export default function HomePage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
+
+              {cartCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-blue-600 rounded-full shadow-lg">
+                  {cartCount}
+                </span>
+              )}
             </Link>
 
             {isLoggedIn ? (
@@ -468,7 +519,14 @@ export default function HomePage() {
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <div className="absolute top-2 left-2 rounded-full bg-amber-400 text-white text-[10px] font-black px-2 py-1 shadow-md">Cocok</div>
                   </div>
-                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                      <p className="text-sm font-black text-gray-900 line-clamp-2 flex-1">{p.name}</p>
+                      <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-1.5 bg-blue-50 text-[#0077B6] rounded-lg hover:bg-[#0077B6] hover:text-white transition-all flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </button>
+                  </div>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
                     <span>{p.category}</span>
                     <span className="text-blue-600">{formatRupiah(Number(p.price))}</span>
@@ -540,7 +598,14 @@ export default function HomePage() {
                       {p.tag && <span className="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-black uppercase text-white shadow-sm">{p.tag}</span>}
                     </div>
                   </div>
-                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                    <p className="text-sm font-black text-gray-900 line-clamp-2 flex-1">{p.name}</p>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-1.5 bg-blue-50 text-[#0077B6] rounded-lg hover:bg-[#0077B6] hover:text-white transition-all flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
                     <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span className="text-blue-600">{formatRupiah(Number(p.price))}</span>
@@ -569,7 +634,14 @@ export default function HomePage() {
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-lime-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Trending</span>
                   </div>
-                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                    <p className="text-sm font-black text-gray-900 line-clamp-2 flex-1">{p.name}</p>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-1 bg-blue-50 text-[#0077B6] rounded-md hover:bg-[#0077B6] hover:text-white transition-all flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
                     <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span>Terjual {p.sold || 0}</span>
@@ -594,7 +666,14 @@ export default function HomePage() {
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Promo</span>
                   </div>
-                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                    <p className="text-sm font-black text-gray-900 line-clamp-2 flex-1">{p.name}</p>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-1 bg-blue-50 text-[#0077B6] rounded-md hover:bg-[#0077B6] hover:text-white transition-all flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
                     <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span className="line-through text-gray-400">{formatRupiah(Number(p.price) + 10000)}</span>
@@ -620,7 +699,14 @@ export default function HomePage() {
                     <img src={p.image || productFallbackImage} alt={p.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = productFallbackImage)} />
                     <span className="absolute top-2 left-2 rounded-full bg-amber-500 px-2 py-1 text-[10px] font-black uppercase text-white shadow-md">Top</span>
                   </div>
-                  <p className="text-sm font-black text-gray-900 line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                    <p className="text-sm font-black text-gray-900 line-clamp-2 flex-1">{p.name}</p>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(p); }} className="p-1 bg-blue-50 text-[#0077B6] rounded-md hover:bg-[#0077B6] hover:text-white transition-all flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="mt-2 flex items-center justify-between text-xs font-bold text-gray-500">
                     <span className="inline-flex items-center gap-1 text-amber-600">★ {(p.rating || 4.5).toFixed(1)}</span>
                     <span>{formatRupiah(Number(p.price))}</span>
