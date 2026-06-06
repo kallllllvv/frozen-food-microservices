@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, ShoppingCart, Star, Search, SlidersHorizontal, X } from 'lucide-react';
+import { getSocket, joinSocketContext } from '@/lib/socket';
 
 export default function CategorySidebarPage() {
   const params = useParams();
@@ -60,12 +61,41 @@ export default function CategorySidebarPage() {
     window.addEventListener('storage', updateCartCount);
     
     const user = localStorage.getItem("user"); 
+    let userEmail = "";
+    let userRole = "guest";
+
     if (user) {
       try {
         const userData = JSON.parse(user);
         setIsLoggedIn(true);
         setUserName(userData.name || "User");
+        userEmail = String(userData.email || "").trim().toLowerCase();
+        userRole = String(userData.role || "user").trim().toLowerCase();
       } catch (e) { console.error(e); }
+    }
+
+    const socket = getSocket();
+
+    const handleConnect = () => {
+      joinSocketContext({ role: userRole, email: userEmail });
+    };
+
+    const handleStockUpdated = (payload: { id?: number; stock?: number }) => {
+      if (!payload?.id) return;
+      setProducts((prevProducts) =>
+        prevProducts.map((product) =>
+          product.id === payload.id
+            ? { ...product, stock: Number(payload.stock ?? product.stock) }
+            : product
+        )
+      );
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('stock_updated', handleStockUpdated);
+
+    if (socket.connected) {
+      handleConnect();
     }
 
     const fetchProducts = async () => {
@@ -84,7 +114,11 @@ export default function CategorySidebarPage() {
       } catch (err) { setError("Gagal memuat produk."); } finally { setIsLoading(false); }
     };
     fetchProducts();
-    return () => window.removeEventListener('storage', updateCartCount);
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      socket.off('connect', handleConnect);
+      socket.off('stock_updated', handleStockUpdated);
+    };
   }, [categoryName]);
 
   const brandsInCategory = useMemo(() => {

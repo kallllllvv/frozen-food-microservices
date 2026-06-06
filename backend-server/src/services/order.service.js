@@ -100,11 +100,10 @@ const listOrders = async () => {
 // Digunakan untuk halaman History user di frontend
 const listOrdersByEmail = async (email) => {
   const rawOrders = await OrderModel.fetchOrdersByEmail(email);
-  
-  // Format string item_names yang digabung koma menjadi Array
-  return rawOrders.map(order => ({
+
+  return rawOrders.map((order) => ({
     ...order,
-    items: order.item_names ? order.item_names.split(', ') : []
+    items: Array.isArray(order.items) ? order.items : [],
   }));
 };
 

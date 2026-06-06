@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { getSocket, joinSocketContext } from '@/lib/socket';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -121,14 +122,44 @@ export default function HomePage() {
     
     // 1. Cek status login
     const user = localStorage.getItem("user"); 
+    let userEmail = "";
+    let userRole = "guest";
+
     if (user) {
       try {
         const userData = JSON.parse(user);
         setIsLoggedIn(true);
         setUserName(userData.name || "User");
+        userEmail = String(userData.email || "").trim().toLowerCase();
+        userRole = String(userData.role || "user").trim().toLowerCase();
       } catch (error) {
         console.error("Gagal membaca data user:", error);
       }
+    }
+
+    const socket = getSocket();
+
+    const handleConnect = () => {
+      joinSocketContext({ role: userRole, email: userEmail });
+    };
+
+    const handleStockUpdated = (payload: { id?: number; stock?: number }) => {
+      if (!payload?.id) return;
+
+      setProducts((prevProducts) =>
+        prevProducts.map((product) =>
+          product.id === payload.id
+            ? { ...product, stock: Number(payload.stock ?? product.stock) }
+            : product
+        )
+      );
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('stock_updated', handleStockUpdated);
+
+    if (socket.connected) {
+      handleConnect();
     }
 
     // 2. Fetch data produk dari Backend
@@ -203,7 +234,11 @@ export default function HomePage() {
 
     fetchBanner();
 
-    return () => window.removeEventListener('storage', updateCartCount);
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      socket.off('connect', handleConnect);
+      socket.off('stock_updated', handleStockUpdated);
+    };
   }, []);
 
   useEffect(() => {

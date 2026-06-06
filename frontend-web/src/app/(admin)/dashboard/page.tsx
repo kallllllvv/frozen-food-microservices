@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { getSocket, joinSocketContext } from "@/lib/socket";
 
 type User = { name?: string; email?: string; role?: string };
 type DashboardStats = {
@@ -123,6 +124,54 @@ export default function AdminDashboardPage() {
 
             setUser(parsedUser);
             loadDashboard();
+
+            const socket = getSocket();
+
+            const handleConnect = () => {
+                joinSocketContext({ role: "admin", email: parsedUser.email });
+            };
+
+            const handleOrderCreated = () => {
+                loadDashboard();
+            };
+
+            const handleOrderStatusUpdated = () => {
+                loadDashboard();
+            };
+
+            const handleDashboardStatsUpdated = (payload: DashboardStats) => {
+                setStats(payload);
+            };
+
+            const handleStockUpdated = (payload: Product) => {
+                if (!payload?.id) return;
+
+                setProducts((prevProducts) =>
+                    prevProducts.map((product) =>
+                        product.id === payload.id
+                            ? { ...product, stock: payload.stock }
+                            : product
+                    )
+                );
+            };
+
+            socket.on("connect", handleConnect);
+            socket.on("order_created", handleOrderCreated);
+            socket.on("order_status_updated", handleOrderStatusUpdated);
+            socket.on("dashboard_stats_updated", handleDashboardStatsUpdated);
+            socket.on("stock_updated", handleStockUpdated);
+
+            if (socket.connected) {
+                handleConnect();
+            }
+
+            return () => {
+                socket.off("connect", handleConnect);
+                socket.off("order_created", handleOrderCreated);
+                socket.off("order_status_updated", handleOrderStatusUpdated);
+                socket.off("dashboard_stats_updated", handleDashboardStatsUpdated);
+                socket.off("stock_updated", handleStockUpdated);
+            };
         } catch {
             router.push("/auth/login");
         }

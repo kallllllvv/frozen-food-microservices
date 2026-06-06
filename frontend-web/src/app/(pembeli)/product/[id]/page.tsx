@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { getSocket, joinSocketContext } from '@/lib/socket';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -55,6 +56,57 @@ export default function ProductDetailPage() {
     { label: "Kualitas", value: Math.min(5, Math.max(3.5, displayRating)) },
     { label: "Kemasan", value: Math.min(5, Math.max(3.5, displayRating - 0.1)) },
   ], [displayRating]);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    let userEmail = '';
+    let userRole = 'guest';
+
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        userEmail = String(userData.email || '').trim().toLowerCase();
+        userRole = String(userData.role || 'user').trim().toLowerCase();
+      } catch (error) {
+        console.error('Gagal membaca data user:', error);
+      }
+    }
+
+    const socket = getSocket();
+
+    const handleConnect = () => {
+      joinSocketContext({ role: userRole, email: userEmail });
+    };
+
+    const handleStockUpdated = (payload: { id?: number; stock?: number }) => {
+      if (!payload?.id) return;
+
+      setProduct((prevProduct: any) => {
+        if (!prevProduct || prevProduct.id !== payload.id) return prevProduct;
+        return { ...prevProduct, stock: Number(payload.stock ?? prevProduct.stock) };
+      });
+
+      setAllProducts((prevProducts) =>
+        prevProducts.map((item) =>
+          item.id === payload.id
+            ? { ...item, stock: Number(payload.stock ?? item.stock) }
+            : item
+        )
+      );
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('stock_updated', handleStockUpdated);
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('stock_updated', handleStockUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchProductFromDB = async () => {

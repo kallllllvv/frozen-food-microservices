@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 
 // Import Routes
 const productRoutes = require('./routes/product.route');
@@ -13,9 +14,11 @@ const { initDatabase } = require('./config/db');
 const ProductModel = require('./models/product.model');
 const OrderModel = require('./models/order.model');
 const BannerModel = require('./models/banner.model');
+const { initRealtime } = require('./realtime/socket');
 
 const app = express();
 const PORT = 5000;
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors());
@@ -52,7 +55,9 @@ initDatabase()
     console.log('✅ Tabel banners siap digunakan!');
     
     // Jalankan server HANYA JIKA semua koneksi database dan tabel berhasil disiapkan
-    app.listen(PORT, () => {
+    initRealtime(server);
+
+    server.listen(PORT, () => {
       console.log(`🚀 Backend server running on http://localhost:${PORT}`);
     });
   })

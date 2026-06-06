@@ -1,4 +1,5 @@
 const AdminService = require('../services/admin.service');
+const { emitToAll, emitToAdmin, emitToUser } = require('../realtime/socket');
 
 const getStats = async (req, res) => {
   try {
@@ -29,8 +30,15 @@ const createProduct = async (req, res) => {
 
 const updateStock = async (req, res) => {
   try {
-    await AdminService.updateStock(req.params.id, req.body);
-    res.status(200).json({ success: true, message: 'Stok berhasil diperbarui.' });
+    const updatedProduct = await AdminService.updateStock(req.params.id, req.body);
+
+    try {
+      emitToAll('stock_updated', updatedProduct);
+    } catch (realtimeError) {
+      console.error('Realtime stock_updated gagal dikirim:', realtimeError.message);
+    }
+
+    res.status(200).json({ success: true, message: 'Stok berhasil diperbarui.', data: updatedProduct });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -47,8 +55,18 @@ const getOrders = async (req, res) => {
 
 const updateOrderStatus = async (req, res) => {
   try {
-    await AdminService.updateOrderStatus(req.params.id, req.body);
-    res.status(200).json({ success: true, message: 'Status order berhasil diperbarui.' });
+    const updatedOrder = await AdminService.updateOrderStatus(req.params.id, req.body);
+    const latestStats = await AdminService.getDashboardStats();
+
+    try {
+      emitToAdmin('order_status_updated', updatedOrder);
+      emitToAdmin('dashboard_stats_updated', latestStats);
+      emitToUser(updatedOrder?.user_email, 'order_status_updated', updatedOrder);
+    } catch (realtimeError) {
+      console.error('Realtime order_status_updated (admin) gagal dikirim:', realtimeError.message);
+    }
+
+    res.status(200).json({ success: true, message: 'Status order berhasil diperbarui.', data: updatedOrder });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }

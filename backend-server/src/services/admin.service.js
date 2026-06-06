@@ -47,6 +47,8 @@ const updateStock = async (productId, payload) => {
   } else {
     await ProductModel.setProductStock(productId, value);
   }
+
+  return await ProductModel.fetchProductById(productId);
 };
 
 const listOrders = async () => {
@@ -64,7 +66,7 @@ const updateOrderStatus = async (orderId, payload) => {
     throw new Error('Status order wajib diisi.');
   }
 
-  await OrderModel.updateOrderStatus(orderId, status, trackingNumber);
+  return await OrderModel.updateOrderStatus(orderId, status, trackingNumber);
 };
 
 const listBanners = async () => {

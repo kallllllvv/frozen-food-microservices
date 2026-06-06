@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Store, PackageSearch, ReceiptText, ShoppingBag, ChevronLeft } from "lucide-react";
+import { getSocket, joinSocketContext } from "@/lib/socket";
 
 interface Order {
   id: number;
@@ -31,10 +32,11 @@ export default function HistoryPage() {
     }
 
     const user = JSON.parse(userStr);
+    const userEmail = String(user.email || "").trim().toLowerCase();
 
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/orders/history/${user.email}`);
+        const response = await fetch(`http://localhost:5000/api/orders/history/${userEmail}`);
         
         if (response.ok) {
           const data = await response.json();
@@ -50,6 +52,33 @@ export default function HistoryPage() {
     };
 
     fetchHistory();
+
+    const socket = getSocket();
+
+    const handleConnect = () => {
+      joinSocketContext({ role: "user", email: userEmail });
+    };
+
+    const handleUserOrderEvent = (payload: { user_email?: string }) => {
+      const payloadEmail = String(payload?.user_email || "").trim().toLowerCase();
+      if (payloadEmail && payloadEmail === userEmail) {
+        fetchHistory();
+      }
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("order_created", handleUserOrderEvent);
+    socket.on("order_status_updated", handleUserOrderEvent);
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("order_created", handleUserOrderEvent);
+      socket.off("order_status_updated", handleUserOrderEvent);
+    };
   }, [router]);
 
   const formatStatus = (status: string) => {

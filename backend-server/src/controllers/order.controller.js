@@ -1,9 +1,22 @@
 const OrderService = require('../services/order.service');
+const AdminService = require('../services/admin.service');
+const { emitToAdmin, emitToUser } = require('../realtime/socket');
 
 // 1. Membuat pesanan baru (Checkout)
 const createOrder = async (req, res) => {
   try {
     const order = await OrderService.createOrder(req.body);
+
+    try {
+      emitToAdmin('order_created', order);
+      emitToUser(order.user_email, 'order_created', order);
+
+      const latestStats = await AdminService.getDashboardStats();
+      emitToAdmin('dashboard_stats_updated', latestStats);
+    } catch (realtimeError) {
+      console.error('Realtime order_created gagal dikirim:', realtimeError.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order berhasil dibuat.',
@@ -84,6 +97,17 @@ const confirmOrderReceived = async (req, res) => {
     }
 
     const updatedOrder = await OrderService.updateOrderStatus(id, status || 'Selesai');
+
+    try {
+      emitToAdmin('order_status_updated', updatedOrder);
+      emitToUser(updatedOrder?.user_email, 'order_status_updated', updatedOrder);
+
+      const latestStats = await AdminService.getDashboardStats();
+      emitToAdmin('dashboard_stats_updated', latestStats);
+    } catch (realtimeError) {
+      console.error('Realtime order_status_updated gagal dikirim:', realtimeError.message);
+    }
+
     res.status(200).json(updatedOrder);
   } catch (error) {
     res.status(500).json({
